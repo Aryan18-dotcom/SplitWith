@@ -2,6 +2,7 @@ from werkzeug.security import generate_password_hash
 from . import GetDB
 from datetime import datetime
 from bson import ObjectId
+from .extensions import mongo
 
 class UserModel:
 

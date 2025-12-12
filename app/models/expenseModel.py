@@ -1,6 +1,7 @@
 # expenseModel.py
 from bson.objectid import ObjectId
 from datetime import datetime
+from .extensions import mongo
 
 class ExpenseModel:
 

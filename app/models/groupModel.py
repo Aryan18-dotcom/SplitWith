@@ -2,6 +2,7 @@ from . import GetDB
 from bson import ObjectId
 from datetime import datetime, timedelta
 import uuid
+from .extensions import mongo
 
 INVITE_COLLECTION = "group_invites"
 INVITE_TTL_DAYS = 7  # token lifetime
