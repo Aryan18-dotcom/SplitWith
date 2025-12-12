@@ -14,6 +14,11 @@ user_bp = Blueprint("userAuth", __name__, template_folder="templates")
 @user_bp.route('/auth/signup', methods=["POST", "GET"])
 def signup():
     if request.method == "POST":
+
+        # Set loading = true
+        response = make_response()
+        response.set_cookie("loading", "true", samesite="Lax")
+
         data = request.form
 
         username = data.get('username')
@@ -22,17 +27,21 @@ def signup():
         phone_no = data.get('phone_no')
         password = data.get('password')
 
-        # Validate
         if not all([username, email, full_name, phone_no, password]):
             flash("Please fill all required fields!", "error")
-            return render_template("user_auth/signup.html")
+            
+            response = make_response(render_template("user_auth/signup.html"))
+            response.set_cookie("loading", "false", samesite="Lax")
+            return response
 
-        # Duplicate Check (case insensitive)
         if UserModel.find_by_email_or_username(email) or UserModel.find_by_email_or_username(username):
             flash("Username or Email already exists!", "error")
-            return render_template("user_auth/signup.html")
 
-        # Store user fields temporarily in session
+            response = make_response(render_template("user_auth/signup.html"))
+            response.set_cookie("loading", "false", samesite="Lax")
+            return response
+
+        # Store pending
         session['pending_signup'] = {
             "email": email,
             "username": username,
@@ -41,13 +50,16 @@ def signup():
             "password": password
         }
 
-        # Send OTP
         OTPModel.generate_otp(email)
 
         flash("OTP sent to your email.", "success")
-        return render_template("user_auth/verify_otp.html", email=email)
+
+        response = make_response(render_template("user_auth/verify_otp.html", email=email))
+        response.set_cookie("loading", "false", samesite="Lax")
+        return response
 
     return render_template("user_auth/signup.html")
+
 
 
 # ----------------------- JWT FUNCTIONS -----------------------
@@ -85,32 +97,34 @@ def get_session_user():
 # ----------------------- LOGIN -----------------------
 @user_bp.route('/auth/login', methods=['GET', 'POST'])
 def login():
+
     if get_session_user():
         return redirect(url_for('home.dashboard'))
 
     if request.method == 'POST':
+
+        # Start loading
+        response = make_response()
+        response.set_cookie("loading", "true", samesite="Lax")
+
         identifier = request.form.get('user_name_or_email')
         password = request.form.get('user_password')
 
         if not identifier or not password:
             flash("Please fill all fields!", "error")
-            return render_template("user_auth/login.html")
+            response = make_response(render_template("user_auth/login.html"))
+            response.set_cookie("loading", "false", samesite="Lax")
+            return response
 
-        # Fetch user by email or username
         user = UserModel.find_by_email_or_username(identifier)
 
-        if not user:
-            flash("Wrong credentials!", "error")
-            return render_template("user_auth/login.html")
-
-        # Check password
-        if not check_password_hash(user["password"], password):
+        if not user or not check_password_hash(user["password"], password):
             flash("Incorrect credentials!", "error")
-            return render_template("user_auth/login.html")
+            response = make_response(render_template("user_auth/login.html"))
+            response.set_cookie("loading", "false", samesite="Lax")
+            return response
 
-        # ----------------------------
-        # DEVICE INFO
-        # ----------------------------
+        # Device tracking
         user_agent_string = request.headers.get("User-Agent")
         readable_device = get_readable_device(user_agent_string)
 
@@ -122,14 +136,13 @@ def login():
             "browser": readable_device["browser"],
         }
 
-        # Check existing devices
         existing_device = next(
-            (d for d in user.get("devices", [])
-             if d.get("ip") == current_device["ip"]
-             and d.get("device_type") == current_device["device_type"]
-             and d.get("device_name") == current_device["device_name"]
-             and d.get("os") == current_device["os"]
-             and d.get("browser") == current_device["browser"]),
+            (d for d in user.get("devices", []) 
+             if d.get("ip") == current_device["ip"] and
+                d.get("device_type") == current_device["device_type"] and
+                d.get("device_name") == current_device["device_name"] and
+                d.get("os") == current_device["os"] and
+                d.get("browser") == current_device["browser"]),
             None
         )
 
@@ -137,35 +150,40 @@ def login():
             existing_device["login_time"] = datetime.utcnow()
             UserModel.update_last_active_device(user_id=str(user["_id"]), device=existing_device)
         else:
-            device_info = current_device.copy()
-            device_info["login_time"] = datetime.utcnow()
-            UserModel.add_login_device(user_id=str(user["_id"]), device=device_info)
+            current_device["login_time"] = datetime.utcnow()
+            UserModel.add_login_device(user_id=str(user["_id"]), device=current_device)
 
-        # Update last active device & login status
         UserModel.update_last_active_device(user_id=str(user["_id"]), device=current_device)
         UserModel.update_login_status(user_id=str(user["_id"]), is_login=True)
 
-        # 2FA check
+        # Handle 2FA
         if user.get('2fa_enabled'):
-            # Trigger 2FA verification (default method email)
             OTPModel.generate_otp(user["email"])
-            flash("2FA verification required. Check your email.", "info")
-            return render_template("user_auth/verify_login.html", email=user["email"], next_url=url_for('home.dashboard'))
 
-        # Create session
+            response = make_response(render_template("user_auth/verify_login.html",
+                                                     email=user["email"],
+                                                     next_url=url_for('home.dashboard')))
+            response.set_cookie("loading", "false", samesite="Lax")
+            return response
+
+        # Create JWT session
         token = SetAndGetSession({
             "user_id": str(user["_id"]),
             "username": user["username"],
             "email": user["email"]
         })["token"]
 
-        resp = make_response(redirect(url_for("home.dashboard")))
-        resp.set_cookie("session_token", token, httponly=True, samesite="Lax")
+        response = make_response(redirect(url_for("home.dashboard")))
+        response.set_cookie("session_token", token, httponly=True, samesite="Lax")
 
         flash("Login successful! Welcome back.", "success")
-        return resp
+
+        # Stop loading
+        response.set_cookie("loading", "false", samesite="Lax")
+        return response
 
     return render_template("user_auth/login.html")
+
 
 @user_bp.route('/auth/logout')
 def logout():

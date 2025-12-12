@@ -1,9 +1,15 @@
 {% extends "user_auth/base.html" %}
 {% block content %}
+
+<!-- Loader Overlay -->
+<div id="loader" class="fixed inset-0 bg-white bg-opacity-70 flex items-center justify-center z-50 hidden">
+    <div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+</div>
+
 <h2 class="text-3xl font-extrabold text-neutral-800 mb-2 text-center">Welcome Back</h2>
 <p class="text-neutral-500 mb-6 text-center">Log in to split your next bill and settle up with friends.</p>
 
-<form method="POST" action="{{ url_for('userAuth.login') }}" class="space-y-5">
+<form id="loginForm" method="POST" action="{{ url_for('userAuth.login') }}" class="space-y-5">
   <div>
     <label class="block text-sm font-medium text-neutral-700 mb-1">Email or Username</label>
     <input type="text" name="user_name_or_email" required
@@ -29,4 +35,16 @@
     Sign Up
   </a>
 </p>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("loginForm");
+    const loader = document.getElementById("loader");
+
+    form.addEventListener("submit", () => {
+        loader.classList.remove("hidden");
+    });
+});
+</script>
+
 {% endblock %}
