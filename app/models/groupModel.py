@@ -1,7 +1,7 @@
+from . import GetDB
 from bson import ObjectId
 from datetime import datetime, timedelta
 import uuid
-from ..extensions import mongo
 
 INVITE_COLLECTION = "group_invites"
 INVITE_TTL_DAYS = 7  # token lifetime
@@ -24,7 +24,8 @@ class GroupModel:
 
     @staticmethod
     def collection():
-        return mongo.db.groups
+        db = GetDB._get_db()
+        return db.groups
 
     # -------------------------
     # CREATE GROUP
@@ -162,16 +163,17 @@ class GroupModel:
     # -------------------------
     @staticmethod
     def get_user_groups_with_users(user_id):
+        db = GetDB._get_db()
         uid = to_object_id(user_id)
 
-        groups = list(GroupModel.groups.find({"group_members": uid}))
+        groups = list(db.groups.find({"group_members": uid}))
 
         # Collect all user ids
         user_ids = {member for g in groups for member in g.get("group_members", [])}
 
         users_map = {
             str(u["_id"]): u
-            for u in GroupModel.users.find({"_id": {"$in": list(user_ids)}})
+            for u in db.users.find({"_id": {"$in": list(user_ids)}})
         }
 
         for g in groups:
@@ -186,7 +188,8 @@ class GroupModel:
     # -------------------------
     @staticmethod
     def _invite_collection():
-        return getattr(GroupModel, INVITE_COLLECTION)
+        db = GetDB._get_db()
+        return getattr(db, INVITE_COLLECTION)
 
     @staticmethod
     def create_invite_token(group_id, user_id, ttl_days=INVITE_TTL_DAYS):
@@ -229,13 +232,14 @@ class GroupModel:
     @staticmethod
     def update_group_total_balance(group_id):
         """Recalculate and update the total balance of a group based on its expenses."""
+        db = GetDB._get_db()
 
         pipeline = [
             {"$match": {"group_id": to_object_id(group_id)}},
             {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
         ]
 
-        result = list(GroupModel.expenses.aggregate(pipeline))
+        result = list(db.expenses.aggregate(pipeline))
         total_balance = result[0]["total"] if result else 0
 
         GroupModel.collection().update_one(
@@ -269,9 +273,10 @@ class GroupModel:
 
     @staticmethod
     def get_personal_group(user_ids_sorted, group_name):
+        db = GetDB._get_db()
         user_ids_obj = [ObjectId(uid) if isinstance(uid, str) else uid for uid in user_ids_sorted]
 
-        return GroupModel.groups.find_one({
+        return db.groups.find_one({
             "is_personal": True,
             "group_title": group_name,
             "group_members": {"$all": user_ids_obj, "$size": len(user_ids_obj)}

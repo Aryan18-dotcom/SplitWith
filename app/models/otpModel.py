@@ -1,16 +1,17 @@
+from . import GetDB
 from config import Config
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 import random
-from ..extensions import mongo
 
 class OTPModel:
 
     @staticmethod
     def collection():
-        return mongo.db.otps
+        db = GetDB._get_db()
+        return db.otps
 
     @staticmethod
     def generate_otp(email):

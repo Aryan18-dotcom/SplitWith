@@ -1,13 +1,13 @@
 # expenseModel.py
 from bson.objectid import ObjectId
 from datetime import datetime
-from ..extensions import mongo
+from . import GetDB
 
 class ExpenseModel:
 
     @staticmethod
     def collection():
-        return mongo.db.expenses
+        return GetDB._get_db().expenses
 
 
     @staticmethod
