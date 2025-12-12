@@ -1,0 +1,58 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Edit Expense{% endblock %}
+
+{% block content %}
+<h2 class="text-xl font-bold text-neutral-800 mb-4">Edit Expense</h2>
+
+<form method="POST" action="{{ url_for('edit_expense_route', tx_id=expense.tx_id) }}" class="space-y-4 bg-white p-6 rounded-xl shadow">
+  <div>
+    <label class="block text-neutral-700 font-medium mb-1">Title</label>
+    <input type="text" name="title" required value="{{ expense.title }}"
+      class="w-full p-3 border rounded-lg focus:ring-magenta-500 focus:border-magenta-500">
+  </div>
+  <div>
+    <label class="block text-neutral-700 font-medium mb-1">Description</label>
+    <textarea name="description" class="w-full p-3 border rounded-lg focus:ring-magenta-500 focus:border-magenta-500">{{ expense.tags[0] if expense.tags else '' }}</textarea>
+  </div>
+  <div>
+    <label class="block text-neutral-700 font-medium mb-1">Amount</label>
+    <input type="number" name="amount" step="0.01" required value="{{ expense.amount }}"
+      class="w-full p-3 border rounded-lg focus:ring-magenta-500 focus:border-magenta-500">
+  </div>
+  <div>
+    <label class="block text-neutral-700 font-medium mb-1">Group</label>
+    <select name="group_id" class="w-full p-3 border rounded-lg focus:ring-magenta-500 focus:border-magenta-500">
+      <option value="">Select Group</option>
+      {% for g in groups %}
+      <option value="{{ g.group_id }}" {% if g.group_id == expense.group_id %} selected {% endif %}>{{ g.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="mb-8">
+      <label class="block text-neutral-700 font-medium mb-1">
+          Create new group for the event!
+      </label>
+
+      <a href="{{ url_for('create_group_route') }}"
+        class="inline-block bg-indigo-600 text-white px-4 py-2 rounded-lg 
+                hover:bg-indigo-700 transition font-medium shadow-sm">
+          Create New Group
+      </a>
+  </div>
+
+  <div>
+    <label class="block text-neutral-700 font-medium mb-1">Split With</label>
+    <select name="members" multiple class="w-full p-3 h-40 border rounded-lg focus:ring-magenta-500 focus:border-magenta-500">
+      {% for u in users %}
+        {% if u.user_id != current_user_id %}
+        <option value="{{ u.user_id }}" {% if u.user_id in expense.split_with %} selected {% endif %}>{{ u.username }}</option>
+        {% endif %}
+      {% endfor %}
+    </select>
+    <p class="text-xs text-gray-500 mt-1">Hold Ctrl (Windows) or Cmd (Mac) to select multiple members.</p>
+  </div>
+  <button type="submit" class="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition">
+    Update Expense
+  </button>
+</form>
+{% endblock %}

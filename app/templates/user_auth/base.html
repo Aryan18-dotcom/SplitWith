@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>{{ title or "Auth" }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Inter, sans-serif; background-color: #f4f7f9; }
+  </style>
+</head>
+<body>
+  <div class="w-full min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white p-8 sm:p-10 rounded-xl shadow-2xl transition-all duration-500 ease-in-out">
+      <div class="text-center mb-6">
+        <div class="text-4xl font-black text-blue-600 tracking-tighter">SplitWise</div>
+        <p class="text-sm text-neutral-400 mt-1">Shared Expense Tracker</p>
+      </div>
+
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="space-y-3 mb-4">
+            {% for category, message in messages %}
+              <div class="p-3 rounded-lg text-sm
+                {% if category == 'error' %} bg-red-100 text-red-700 border border-red-300
+                {% elif category == 'success' %} bg-green-100 text-green-700 border border-green-300
+                {% else %} bg-gray-100 text-gray-700 border border-gray-300 {% endif %}">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <!-- page content -->
+      <div>
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>

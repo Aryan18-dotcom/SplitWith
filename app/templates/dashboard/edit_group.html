@@ -1,0 +1,129 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Edit Group{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+
+    <!-- Page Title -->
+    <h2 class="text-2xl font-bold text-neutral-800 mb-5">Edit Group</h2>
+
+    <!-- Card -->
+    <div class="bg-white p-6 rounded-xl shadow-lg">
+
+        <form method="POST"
+              enctype="multipart/form-data"
+              action="{{ url_for('group.update_group', group_id=group.group_id) }}"
+              class="space-y-6">
+
+            <!-- Group Title -->
+            <div>
+                <label class="text-sm font-medium text-neutral-700">Group Title</label>
+                <input type="text" 
+                       name="group_title" 
+                       required
+                       value="{{ group.name }}"
+                       class="mt-1 p-3 w-full border border-gray-300 rounded-xl 
+                              focus:ring-blue-500 focus:border-blue-500 transition shadow-sm"
+                       placeholder="Enter group name">
+            </div>
+
+            <!-- Group Description -->
+            <div>
+                <label class="text-sm font-medium text-neutral-700">Description</label>
+                <textarea name="group_description"
+                          rows="4"
+                          class="mt-1 p-3 w-full border border-gray-300 rounded-xl 
+                                 focus:ring-blue-500 focus:border-blue-500 transition shadow-sm"
+                          placeholder="Write something...">{{ group.description }}</textarea>
+            </div>
+
+            <!-- Group Photo -->
+            <div>
+                <label class="text-sm font-medium text-neutral-700">Group Photo</label>
+
+                {% if group.group_photo %}
+                <div class="my-2 relative">
+                    <img src="{{ url_for('static', filename='uploads/groups/' + group.group_photo) }}"
+                         class="w-24 h-24 rounded-lg shadow border object-cover">
+                    <img id="cover-pic"
+                         class="hidden w-24 h-24 rounded-lg shadow border object-cover absolute top-0 z-40">
+                </div>
+                {% endif %}
+
+                <input type="file" id="group_photo"
+                       name="group_photo"
+                       class="mt-2 block w-full text-sm text-neutral-600 bg-neutral-50
+                              border border-gray-300 rounded-xl p-2 cursor-pointer shadow-sm">
+            </div>
+
+            <!-- Members -->
+            <div>
+                <label class="text-sm font-medium text-neutral-700">Members</label>
+
+                <select name="members" multiple
+                        class="mt-1 p-3 w-full h-48 border border-gray-300 rounded-xl 
+                               focus:ring-blue-500 focus:border-blue-500 transition shadow-sm text-sm">
+
+                    {% for u in users %}
+                        {% if u.user_id == current_user_id %}
+                            <!-- Creator (hidden & locked) -->
+                            <option value="{{ u.user_id }}" class="hidden"
+                                {% if u.user_id in group.members %} selected {% endif %}>
+                                {{ u.username }} (You)
+                            </option>
+                        {% else %}
+                            <option value="{{ u.user_id }}"
+                                {% if u.user_id in group.members %} selected {% endif %}>
+                                {{ u.username }} – {{ u.email }}
+                            </option>
+                        {% endif %}
+                    {% endfor %}
+
+                </select>
+
+                <p class="text-xs text-gray-500 mt-1">
+                    Hold <strong>Ctrl</strong> or <strong>Cmd</strong> to select multiple members.
+                </p>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex justify-between items-center pt-2">
+                <a href="{{ url_for('group.list_groups') }}"
+                   class="px-5 py-2 bg-gray-300 text-gray-800 rounded-xl shadow 
+                          hover:bg-gray-400 hover:shadow-lg transition text-sm font-medium">
+                    Cancel
+                </a>
+
+                <button type="submit"
+                        class="px-5 py-2 bg-blue-600 text-white rounded-xl shadow 
+                               hover:bg-blue-700 hover:shadow-lg transition text-sm font-medium">
+                    Update Group
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+<!-- Script for live cover-pic preview -->
+<script>
+    const input = document.getElementById('group_photo');
+    const coverPic = document.getElementById('cover-pic');
+
+    input.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                coverPic.src = e.target.result;
+                coverPic.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            coverPic.src = '';
+            coverPic.classList.add('hidden');
+        }
+    });
+</script>
+{% endblock %}

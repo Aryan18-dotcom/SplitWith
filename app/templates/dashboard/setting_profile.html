@@ -1,0 +1,115 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Profile Settings{% endblock %}
+
+{% block content %}
+<div class="w-full px-6 py-8">
+
+    <!-- Page Title -->
+    <h1 class="text-3xl font-semibold text-gray-800 mb-6 flex items-center gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="size-8 aspect-square rounded-full text-neutral-600" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M5.121 17.804A4 4 0 018 16h8a4 4 0 012.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        Profile Settings
+    </h1>
+
+    <form method="POST" enctype="multipart/form-data" class="space-y-6 bg-white p-6 rounded-xl shadow">
+
+        <!-- Profile Picture -->
+        <div class="flex items-center gap-6 relative">
+            {% if current_user.profile_pic %}
+                <img src="{{ current_user.profile_pic or '/static/default_profile.png' }}" alt="{{ current_user.username + ' Profile Pic'}}"
+                class="size-24 aspect-square rounded-full border border-gray-300 object-cover">
+            {% else %}
+                <i class="ri-user-line"></i>
+            {% endif %}
+            <!-- New Profile Preview (hidden by default) -->
+            <img id="newProfilePreview" src="#" alt="{{ current_user.username + ' New Profile Pic'}}"
+                 class="absolute top-0 left-0 size-24 aspect-square rounded-full border border-gray-300 object-cover z-30 hidden">
+            <input type="file" name="profile_pic" id="profilePicInput" class="block w-full text-sm text-gray-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-full file:border-0
+                file:text-sm file:font-semibold
+                file:bg-blue-50 file:text-blue-700
+                hover:file:bg-blue-100
+            ">
+        </div>
+
+        <!-- Full Name -->
+        <div class="relative">
+            <label class="block text-gray-700 font-medium mb-1 flex items-center gap-1">
+                Full Name
+                <span class="relative group cursor-pointer text-neutral-500 font-bold">?
+                    <span
+                        class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-gray-800 text-white text-sm rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                        Your full name will be displayed on your profile and notifications.
+                    </span>
+                </span>
+            </label>
+            <input type="text" name="full_name" value="{{ current_user.full_name }}"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+        </div>
+
+        <!-- Phone Number -->
+        <div class="relative">
+            <label class="block text-gray-700 font-medium mb-1 flex items-center gap-1">
+                Phone Number
+                <span class="relative group cursor-pointer text-neutral-500 font-bold">?
+                    <span
+                        class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-gray-800 text-white text-sm rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                        Your phone number will be used for notifications and account recovery.
+                    </span>
+                </span>
+            </label>
+            <input type="text" name="phone_no" value="{{ current_user.phone_no }}"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
+        </div>
+
+        <!-- Username (Read Only) -->
+        <div class="relative">
+            <label class="block text-gray-700 font-medium mb-1 flex items-center gap-1">
+                Username
+                <span class="relative group cursor-pointer text-neutral-500 font-bold">?
+                    <span
+                        class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 bg-gray-800 text-white text-sm rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                        Your username is unique and cannot be changed.
+                    </span>
+                </span>
+            </label>
+            <input type="text" value="{{ current_user.username }}" readonly
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 bg-gray-100 cursor-not-allowed text-neutral-400">
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex items-end justify-between mt-2 ml-auto">
+            <a href="{{ url_for('settings.settings') }}" class="px-6 py-3 bg-neutral-600 hover:bg-neutral-700 text-white rounded-lg shadow transition">Get Back!</a>
+            <button type="submit"
+                class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition">
+                Update Profile
+            </button>
+        </div>
+
+    </form>
+</div>
+
+{% block extra_script %}
+<!-- Script for live preview -->
+<script>
+    const input = document.getElementById('profilePicInput');
+    const newPreview = document.getElementById('newProfilePreview');
+
+    input.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if(file){
+            const reader = new FileReader();
+            reader.onload = function(event){
+                newPreview.src = event.target.result;
+                newPreview.classList.remove('hidden');
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

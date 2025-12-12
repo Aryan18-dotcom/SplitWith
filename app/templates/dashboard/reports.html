@@ -1,0 +1,305 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+
+<style>
+:root {
+    --brand: #800000;
+    --bg-card: #ffffff;
+    --text-dark: #333333;
+    --text-muted: #6b7280;
+    --shadow-card: rgba(0,0,0,0.08);
+}
+
+body { font-family: 'Inter', sans-serif; }
+
+.report-card {
+    background: var(--bg-card);
+    border-left: 5px solid var(--brand);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px var(--shadow-card);
+    transition: transform 0.2s;
+}
+.report-card:hover { transform: translateY(-2px); }
+
+.section-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--brand);
+    margin-bottom: 10px;
+}
+
+.scroll-cards {
+    max-height: 350px;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+.scroll-cards::-webkit-scrollbar {
+    width: 6px;
+}
+.scroll-cards::-webkit-scrollbar-thumb {
+    background: var(--brand);
+    border-radius: 10px;
+}
+
+.skeleton {
+    height: 36px;
+    background: linear-gradient(90deg, #f3f3f3 25%, #e0e0e0 50%, #f3f3f3 75%);
+    background-size: 200% 100%;
+    animation: shine 1.5s infinite;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+@keyframes shine {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.font-semibold { font-weight: 600; }
+.text-gray { color: var(--text-dark); }
+.text-muted { color: var(--text-muted); }
+.amount { font-size: 1.25rem; font-weight: 700; }
+.small-text { font-size: 0.875rem; }
+
+.flex-gap { display: flex; gap: 12px; }
+.grid-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.text-center { text-align: center; }
+</style>
+
+<div class="container mx-auto p-4">
+
+    <h2 class="text-3xl font-bold mb-6" style="color: var(--brand);">📊 Reports & Analytics</h2>
+
+    <!-- SUMMARY SECTION -->
+    <div class="grid-summary mb-8">
+        <div class="report-card text-center">
+            <h3 class="small-text text-muted mb-1">Total Expenses</h3>
+            <p id="total-expenses" class="amount text-green-700">₹0</p>
+        </div>
+
+        <div class="report-card text-center">
+            <h3 class="small-text text-muted mb-1">You Paid</h3>
+            <p id="you-paid" class="amount text-blue-700">₹0</p>
+        </div>
+
+        <div class="report-card text-center">
+            <h3 class="small-text text-muted mb-1">Net Balance</h3>
+            <p id="net-balance" class="amount text-purple-700">₹0</p>
+        </div>
+    </div>
+
+    <!-- MONTHLY REPORT FILTER -->
+    <div class="report-card mb-8">
+        <h3 class="section-title">📅 Monthly Report</h3>
+        <div class="flex-gap mt-3">
+            <select id="month" class="border rounded px-3 py-2 w-32">
+                {% for m in range(1, 13) %}
+                <option value="{{ m }}" {% if m==current_month %}selected{% endif %}>{{ m }}</option>
+                {% endfor %}
+            </select>
+
+            <select id="year" class="border rounded px-3 py-2 w-32">
+                {% for y in range(min_year, max_year+1) %}
+                <option value="{{ y }}" {% if y==current_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+
+            <button onclick="loadMonthly()" class="px-4 py-2 bg-[var(--brand)] text-white rounded hover:bg-[#a00000] transition">
+                Load
+            </button>
+        </div>
+
+        <div id="monthly-list" class="scroll-cards mt-4">
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+        </div>
+    </div>
+
+    <!-- GROUP WISE REPORT -->
+    <div class="report-card mb-8">
+        <h3 class="section-title">👥 Group-wise Breakdown</h3>
+        <div id="group-results" class="scroll-cards mt-4 flex flex-col gap-4">
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+        </div>
+    </div>
+
+    <!-- YOUR EXPENSE DETAIL -->
+    <div class="report-card mb-8">
+        <h3 class="section-title">💰 Your Expense Details</h3>
+        <p id="expense-msg" class="text-muted mb-4 small-text">Loading...</p>
+        <div id="your-expense-detail" class="grid-cards">
+            <div class="report-card text-center skeleton">Loading...</div>
+            <div class="report-card text-center skeleton">Loading...</div>
+            <div class="report-card text-center skeleton">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Add this at the very end of your container, after all report sections -->
+<div class="flex gap-4 justify-center mt-6">
+    <a href="/reports/excel/month?user_id={{ current_user_id }}&month={{ current_month }}&year={{ current_year }}"
+       class="px-6 py-3 bg-green-600 text-white font-semibold rounded hover:bg-green-700 transition">
+       📥 Get Current Month Excel
+    </a>
+
+    <a href="/reports/excel/year?user_id={{ current_user_id }}&year={{ current_year }}"
+       class="px-6 py-3 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition">
+       📥 Get Current Year Excel
+    </a>
+</div>
+
+
+</div>
+
+<script>
+const userId = "{{ current_user_id }}";
+
+function monthName(m) {
+    const names = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    return names[m-1] || "";
+}
+
+// --------------------------
+// LOAD SUMMARY
+// --------------------------
+fetch(`/reports/summary?user_id=${userId}`)
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("total-expenses").innerText = `₹${data.total_expenses.toFixed(2)}`;
+        document.getElementById("you-paid").innerText = `₹${data.you_paid.toFixed(2)}`;
+        document.getElementById("net-balance").innerText = `₹${(data.you_are_owed - data.you_owe).toFixed(2)}`;
+    });
+
+// --------------------------
+// LOAD MONTHLY REPORT
+// --------------------------
+function loadMonthly() {
+    const month = document.getElementById("month").value;
+    const year = document.getElementById("year").value;
+    const container = document.getElementById("monthly-list");
+    container.innerHTML = `<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>`;
+
+    fetch(`/reports/monthly?user_id=${userId}&month=${month}&year=${year}`)
+        .then(res => res.json())
+        .then(data => {
+            container.innerHTML = "";
+            if (!data.monthly_expenses || data.monthly_expenses.length === 0) {
+                container.innerHTML = "<p class='text-gray-500'>No expenses found.</p>";
+                return;
+            }
+
+            data.monthly_expenses.forEach(e => {
+                container.innerHTML += `
+                <div class="p-3 border-b rounded mb-2 hover:bg-gray-50 transition">
+                    <div class="font-semibold text-gray">${e.title} - ₹${e.amount}</div>
+                    <div class="small-text text-muted">${e.group} • ${e.date}</div>
+                </div>`;
+            });
+        });
+}
+
+// --------------------------
+// LOAD GROUP WISE REPORT & EXPENSE DETAIL
+// --------------------------
+function loadGroups() {
+    const container = document.getElementById("group-results");
+    const detailContainer = document.getElementById("your-expense-detail");
+    const msgContainer = document.getElementById("expense-msg");
+    const month = parseInt(document.getElementById("month").value);
+    const year = document.getElementById("year").value;
+
+    container.innerHTML = "";
+    detailContainer.innerHTML = `<div class="report-card text-center skeleton">Loading...</div>`;
+    msgContainer.innerText = `Expense details for ${monthName(month)} ${year}:`;
+
+    let totalOwe = 0, totalOwed = 0;
+
+    // Prepare an array of fetch promises for all groups
+    const groupPromises = [
+        {% for g in groups %}
+        fetch(`/reports/group/{{ g._id }}?user_id=${userId}&month=${month}&year=${year}`).then(res => res.json()),
+        {% endfor %}
+    ];
+
+    Promise.all(groupPromises)
+        .then(allData => {
+            let hasExpenses = false;
+            container.innerHTML = "";
+
+            allData.forEach(data => {
+                if (!data.expenses || data.expenses.length === 0) {
+                    const noExp = document.createElement("p");
+                    noExp.className = "text-gray-500 mb-2";
+                    noExp.innerHTML = `<span class="text-[var(--brand)] font-semibold">${data.group_title}</span> - No expenses this month.`;
+                    container.appendChild(noExp);
+                } else {
+                    hasExpenses = true;
+
+                    const groupDiv = document.createElement("div");
+                    groupDiv.className = "mb-4";
+
+                    const titleDiv = document.createElement("div");
+                    titleDiv.className = "font-semibold text-[var(--brand)] mb-2";
+                    titleDiv.innerText = data.group_title;
+                    groupDiv.appendChild(titleDiv);
+
+                    data.expenses.forEach(exp => {
+                        totalOwe += exp.you_owe;
+                        totalOwed += exp.you_are_owed;
+
+                        const expDiv = document.createElement("div");
+                        expDiv.className = "p-3 border-b rounded mb-2 hover:bg-gray-50 transition";
+                        expDiv.innerHTML = `
+                            <div class="font-semibold">${exp.title} - ₹${exp.amount}</div>
+                            <div class="small-text text-muted mb-1">
+                                Created by: ${exp.created_by} • ${exp.created_at}
+                            </div>
+                            <div class="small-text text-gray mb-1">
+                                You owe: ₹${exp.you_owe.toFixed(2)} | You are owed: ₹${exp.you_are_owed.toFixed(2)}
+                            </div>
+                        `;
+                        groupDiv.appendChild(expDiv);
+                    });
+
+                    container.appendChild(groupDiv);
+                }
+            });
+
+            // Update expense detail cards only after all fetches
+            if (hasExpenses) {
+                detailContainer.innerHTML = `
+                    <div class="report-card text-center">
+                        <h4 class="small-text text-muted mb-1">You Owe</h4>
+                        <p class="amount text-red-600">₹${totalOwe.toFixed(2)}</p>
+                    </div>
+                    <div class="report-card text-center">
+                        <h4 class="small-text text-muted mb-1">You Are Owed</h4>
+                        <p class="amount text-green-600">₹${totalOwed.toFixed(2)}</p>
+                    </div>
+                    <div class="report-card text-center">
+                        <h4 class="small-text text-muted mb-1">Net Balance</h4>
+                        <p class="amount text-purple-700">₹${(totalOwed - totalOwe).toFixed(2)}</p>
+                    </div>
+                `;
+            } else {
+                detailContainer.innerHTML = `<p class="text-gray-500 text-center">No Expense Details for this month.</p>`;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            detailContainer.innerHTML = `<p class="text-red-500 text-center">Error loading expense details.</p>`;
+        });
+}
+
+// Reload reports when month/year changes
+document.getElementById("month").addEventListener("change", () => { loadMonthly(); loadGroups(); });
+document.getElementById("year").addEventListener("change", () => { loadMonthly(); loadGroups(); });
+
+// AUTO LOAD
+document.addEventListener("DOMContentLoaded", () => { loadMonthly(); loadGroups(); });
+</script>
+
+{% endblock %}

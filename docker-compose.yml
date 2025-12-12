@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: flask_expense_app
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY:-super-secret-key}
+      - MONGO_URI=${MONGO_URI:-mongodb+srv://Admin:bbPiPewkxTT6QfzO@firstcluster.wwqwyh2.mongodb.net/?appName=FirstCluster}
+      - MONGO_DBNAME=${MONGO_DBNAME:-MongoDB-Test}
+      - SMTP_EMAIL=${SMTP_EMAIL:-sthetic14@gmail.com}
+      - SMTP_PASS=${SMTP_PASS:-tmnb ptoi ygry qwnw}
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - JWT_SECRET=${JWT_SECRET:-your-very-secret-key}
+    volumes:
+      - ./static/uploads:/app/static/uploads
+    restart: unless-stopped

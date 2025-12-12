@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>SplitWith — Animated Landing</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <script src="https://unpkg.com/lottie-web@5.9.6/build/player/lottie.min.js"></script>
+
+    <style>
+        /* FIX: Define CSS variables explicitly for easy use in Tailwind classes below */
+        :root {
+            --primary: #800000;
+            --primary-dark: #600000;
+            --primary-light: #b02020; /* Added from previous context */
+            --accent: #fca311;
+            --glass-bg: rgba(255, 255, 255, 0.10);
+        }
+
+        /* FIX: Apply custom CSS variables via standard Tailwind utility class overrides */
+        .text-primary { color: var(--primary); }
+        .bg-primary { background-color: var(--primary); }
+        .text-primary-light { color: var(--primary-light); } /* Used in Hero H1 */
+        
+        /* The rest of the CSS remains unchanged */
+        body {
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            background: linear-gradient(180deg, #fbfaf9 0%, #f6f3f2 100%);
+            color: #111827;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Navigation */
+        nav {
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+
+        /* Elegant underline */
+        .underline-animate {
+            position: relative;
+            display: inline-block;
+        }
+
+        .underline-animate::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            bottom: -4px;
+            width: 0;
+            height: 2px;
+            background: var(--accent);
+            transition: width .28s ease;
+        }
+
+        .underline-animate:hover::after {
+            width: 100%;
+        }
+
+        /* Glass-morphism card */
+        .glass-card {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.15));
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 8px 20px rgba(14, 14, 16, 0.06);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        /* Glass Card Effect Refinement */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        /* Magnetic Button Wrapper */
+        .magnetic-wrap {
+            /* Ensures the text doesn't jitter inside the moving button */
+            transform: translateZ(0);
+        }
+
+        /* Parallax Layers */
+        .parallax-layer {
+            position: absolute;
+            z-index: 5;
+            /* Blur the shapes for an atmospheric, layered effect */
+            filter: blur(20px);
+        }
+
+        /* Bento grid shapes */
+        .bento {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-auto-rows: minmax(120px, auto);
+            gap: 18px;
+        }
+
+        .tile {
+            border-radius: 14px;
+            overflow: hidden;
+            position: relative;
+            transition: transform .28s cubic-bezier(.2, .9, .2, 1), box-shadow .28s;
+            cursor: pointer;
+        }
+
+        .tile:hover {
+            transform: translateY(-6px) scale(1.01);
+            box-shadow: 0 18px 40px rgba(2, 6, 23, 0.08);
+        }
+
+        /* Tile sizes */
+        .t-2x2 {
+            grid-column: span 2;
+            grid-row: span 2;
+        }
+
+        .t-3x2 {
+            grid-column: span 3;
+            grid-row: span 2;
+        }
+
+        .t-2x1 {
+            grid-column: span 2;
+            grid-row: span 1;
+        }
+
+        .t-1x2 {
+            grid-column: span 1;
+            grid-row: span 2;
+        }
+
+        /* Tile content */
+        .tile-inner {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .tile-title {
+            font-weight: 600;
+            font-size: 1.05rem;
+            margin-bottom: 6px;
+        }
+
+        .tile-desc {
+            color: #4b5563;
+            font-size: .92rem;
+            flex: 1;
+        }
+
+        /* Magnetic button */
+        .magnetic-btn {
+            position: relative;
+            display: inline-block;
+            transform: translate3d(0, 0, 0);
+            transition: transform 0.15s ease-out;
+            will-change: transform;
+        }
+
+        .magnetic-wrap {
+            display: inline-block;
+            padding: 0.1rem;
+            border-radius: 12px;
+        }
+
+        /* Hero parallax layers */
+        .hero {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .parallax-layer {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            will-change: transform;
+            pointer-events: none;
+        }
+
+        /* Lottie container */
+        .lottie-small {
+            width: 80px;
+            height: 80px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .bento {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 12px;
+            }
+
+            .t-3x2 {
+                grid-column: span 4;
+            }
+
+            .t-2x2 {
+                grid-column: span 2;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .bento {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .t-2x2,
+            .t-3x2,
+            .t-2x1 {
+                grid-column: span 2;
+            }
+        }
+
+        /* small utility */
+        .accent-pill {
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            color: white;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: .8rem;
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body class="antialiased">
+
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-white/70 border-b border-gray-100">
+        <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
+            <a class="text-xl font-extrabold text-primary" href="#">SplitWith</a>
+            <div class="hidden md:flex items-center gap-8">
+                <a class="underline-animate text-sm" href="#overview">Overview</a>
+                <a class="underline-animate text-sm" href="#features">Features</a>
+                <a class="underline-animate text-sm" href="#track">Get Started</a>
+            </div>
+            <div class="flex items-center gap-3">
+                {% if user %}
+                <a href="{{ url_for('home.dashboard') }}" class="bg-primary py-px px-2 text-white rounded-2xl hover:-translate-y-[2px] hover:scale-101 trasition-translate duration-300 ease-easeInOut cursor-pointer">Dashboard</a>
+                {% else %}
+                <a href="{{ url_for('userAuth.login') }}" class="bg-primary py-px px-2 text-white rounded-2xl hover:-translate-y-[2px] hover:scale-101 trasition-translate duration-300 ease-easeInOut cursor-pointer">Create Account</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero relative pt-28 pb-20 bg-gray-50 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-6 text-center">
+
+            <h1 class="text-5xl md:text-6xl font-extrabold leading-tight reveal max-w-4xl mx-auto">
+                Smarter Way to track & split <span class="text-primary-light">every expense</span>
+            </h1>
+            <p class="mt-5 text-xl text-gray-600 max-w-2xl mx-auto reveal">
+                SplitWith helps you manage, categorize and split bills with beautiful analytics and instant
+                settlements. Small, delightful micro-interactions make money tracking pleasant.
+            </p>
+
+            <div class="mt-10 flex justify-center flex-wrap gap-4 reveal">
+                <a href="{{ url_for('userAuth.login') }}"
+                    class="bg-primary px-4 py-1 rounded-2xl text-white cursor-pointer font-bold tracking-tight hover:-translate-y-2 flex items-center transition-translate duration-300 ease-easeInOut hover:scale-101">
+                    Start Tracking Today →
+                </a>
+
+                <a href="#features"
+                    class="inline-flex items-center gap-2 px-8 py-4 text-lg border-2 border-gray-200 rounded-xl text-gray-700 hover:bg-white transition-colors">
+                    <span class="text-xl text-accent">✨</span> See Features
+                </a>
+            </div>
+
+            <div
+                class="mt-12 flex justify-center gap-8 items-center border-t border-b border-gray-200 py-6 max-w-4xl mx-auto reveal">
+                <div class="flex items-center gap-2">
+                    <div id="lottie-1" class="lottie-small w-8 h-8 rounded-xl"></div>
+                    <div class="text-sm text-left">
+                        <div class="font-bold">Receipt Scan</div>
+                        <div class="text-xs text-gray-500">Auto-extract amounts</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <div id="lottie-2" class="lottie-small w-8 h-8 rounded-xl"></div>
+                    <div class="text-sm text-left">
+                        <div class="font-bold">Smart Split</div>
+                        <div class="text-xs text-gray-500">Fair & instant settlement</div>
+                    </div>
+                </div>
+
+                <span class="accent-pill font-medium text-sm px-3 py-1 rounded-full">
+                    Made in India 🇮🇳
+                </span>
+            </div>
+
+        </div>
+
+        <div class="w-full max-w-5xl mx-auto mt-20 px-6">
+            <div
+                class="glass-card w-full max-w-3xl mx-auto rounded-3xl overflow-hidden p-6 shadow-2xl shadow-primary/20">
+                <div
+                    class="relative h-[450px] bg-gradient-to-b from-white/80 to-white/30 rounded-2xl overflow-hidden border border-white/50">
+                    <svg class="parallax-layer absolute top-[-10%] right-0 w-64 h-64" id="layer-1" style="opacity:.15;"
+                        viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="g1-2" x1="0" x2="1">
+                                <stop offset="0" stop-color="var(--accent)" />
+                                <stop offset="1" stop-color="var(--primary)" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="260" cy="120" r="120" fill="url(#g1-2)" />
+                    </svg>
+
+                    <svg class="parallax-layer absolute bottom-[-5%] left-[-10%] w-48 h-48" id="layer-2"
+                        style="opacity:.10;" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="80" cy="320" r="80" fill="var(--primary)" />
+                    </svg>
+
+                    <div class="relative z-10 h-full p-6 flex flex-col gap-4">
+                        <div class="flex items-center justify-between">
+                            <div class="text-lg font-bold text-primary-dark">Dashboard</div>
+                            <div class="w-10 h-10 rounded-full bg-accent"></div>
+                        </div>
+
+                        <div class="bg-primary text-white rounded-xl p-4 shadow-lg">
+                            <div class="text-sm font-medium opacity-80">Net Monthly Spending</div>
+                            <div class="4xl font-extrabold mt-1">₹ 34,760</div>
+                            <div class="flex justify-between items-center mt-3 text-xs opacity-70">
+                                <span>Last Month: ₹ 32,100</span>
+                                <span class="bg-white/20 px-2 py-0.5 rounded-full">+8% MoM</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-3">
+                            <button
+                                class="bg-white/90 text-primary font-medium py-3 rounded-lg shadow-sm hover:bg-white transition-colors">Add
+                                Expense</button>
+                            <button
+                                class="bg-white/90 text-primary font-medium py-3 rounded-lg shadow-sm hover:bg-white transition-colors">Split
+                                Bill</button>
+                            <button
+                                class="bg-white/90 text-primary font-medium py-3 rounded-lg shadow-sm hover:bg-white transition-colors">Groups</button>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto">
+                            <div class="text-sm font-semibold text-primary-dark mb-2">Recent Activity</div>
+                            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                                <div class="flex items-center">
+                                    <span class="text-xl mr-3">🛒</span>
+                                    <div>
+                                        <div class="font-medium">Supermarket Run</div>
+                                        <div class="text-xs text-gray-500">Groceries • Dec 3</div>
+                                    </div>
+                                </div>
+                                <div class="font-bold text-red-600">- ₹ 1,200</div>
+                            </div>
+                            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                                <div class="flex items-center">
+                                    <span class="text-xl mr-3">🏠</span>
+                                    <div>
+                                        <div class="font-medium">Rent Paid</div>
+                                        <div class="text-xs text-gray-500">Home • Dec 1</div>
+                                    </div>
+                                </div>
+                                <div class="font-bold text-red-600">- ₹ 15,000</div>
+                            </div>
+                            <div class="flex justify-between items-center py-2">
+                                <div class="flex items-center">
+                                    <span class="text-xl mr-3">🍕</span>
+                                    <div>
+                                        <div class="font-medium">Dinner with Amit (Split)</div>
+                                        <div class="text-xs text-gray-500">Dining • Dec 2</div>
+                                    </div>
+                                </div>
+                                <div class="font-bold text-green-600">+ ₹ 850</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section id="overview" class="py-16">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-semibold">Simple & Powerful</h2>
+                <p class="text-gray-600 mt-2">Core features designed to remove friction from expense tracking.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass-card p-6 tile card-hover">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-lg bg-white/80 flex items-center justify-center text-2xl text-accent">🏷️
+                        </div>
+                        <div>
+                            <div class="font-semibold">Smart Tagging</div>
+                            <div class="text-sm text-gray-600">Auto-suggest categories & people.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 tile card-hover">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-lg bg-white/80 flex items-center justify-center text-2xl text-accent">➗</div>
+                        <div>
+                            <div class="font-semibold">Fair Splitting</div>
+                            <div class="text-sm text-gray-600">Divide bills evenly or custom shares.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 tile card-hover">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-lg bg-white/80 flex items-center justify-center text-2xl text-accent">💸</div>
+                        <div>
+                            <div class="font-semibold">Easy Settlements</div>
+                            <div class="text-sm text-gray-600">Integrated links for quick repayment.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="py-16 bg-white/60">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="flex items-center justify-between mb-8 border-b border-neutral-300">
+                <h2 class="text-2xl font-semibold">Designed for Modern Finance</h2>
+                <div class="text-sm text-gray-500">Interactive Bento showcasing features</div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+                <div class="lg:col-span-2 glass-card p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <div class="text-sm font-medium text-gray-500">Monthly Spending</div>
+                            <div class="text-xl font-extrabold text-primary-dark">You spent ₹22,400 this month</div>
+                        </div>
+                        <div class="text-sm text-gray-500">Last updated 3h ago</div>
+                    </div>
+                    <canvas id="expenseChartLarge" class="w-full h-48"></canvas>
+                </div>
+
+                <div class="glass-card p-6">
+                    <div class="mb-4 text-primary-dark"><strong>Quick tips</strong></div>
+                    <ul class="text-sm text-gray-600 space-y-2">
+                        <li>Auto-tag receipts</li>
+                        <li>One-tap settle with friends</li>
+                        <li>Recurring subscriptions auto-detected</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between mb-8 border-b border-neutral-300">
+                <h2 class="text-2xl font-semibold">Features</h2>
+                <div class="text-sm text-gray-500">Interactive Bento showcasing features</div>
+            </div>
+            <div id="bento" class="bento mb-10">
+                <div class="tile t-3x2 glass-card p-4" data-title="Analytics">
+                    <div class="tile-inner">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="tile-title text-primary-dark">Beautiful Analytics</div>
+                                <div class="tile-desc">Interactive charts, trends and exportable reports.</div>
+                            </div>
+                            <div class="w-16 h-16 bg-primary/20 rounded-lg flex items-center justify-center">
+                                <div id="lottie-bento-1" style="width:56px;height:56px"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tile t-2x2 glass-card p-4" data-title="Split">
+                    <div class="tile-inner">
+                        <div class="tile-title text-primary-dark">Advanced Split</div>
+                        <div class="tile-desc">Split bills by percent, equal shares, or custom amounts.</div>
+                    </div>
+                </div>
+
+                <div class="tile t-2x1 glass-card p-4" data-title="Scan">
+                    <div class="tile-inner">
+                        <div class="tile-title text-primary-dark">Receipt Capture</div>
+                        <div class="tile-desc">Snap photos — AI extracts merchant, amount & category.</div>
+                    </div>
+                </div>
+
+                <div class="tile t-1x2 glass-card p-4" data-title="Recurring">
+                    <div class="tile-inner">
+                        <div class="tile-title text-primary-dark">Recurring Bills</div>
+                        <div class="tile-desc">Auto-detect subscriptions and remind you before due date.</div>
+                    </div>
+                </div>
+
+                <div class="tile t-2x1 glass-card p-4" data-title="Cloud">
+                    <div class="tile-inner">
+                        <div class="tile-title text-primary-dark">Cloud Sync</div>
+                        <div class="tile-desc">Secure multi-device syncing with encryption.</div>
+                    </div>
+                </div>
+
+                <div class="tile t-2x1 glass-card p-4" data-title="Connections">
+                    <div class="tile-inner">
+                        <div class="tile-title text-primary-dark">Customer Connections</div>
+                        <div class="tile-desc">Invite friends & teams — manage shared wallets.</div>
+                    </div>
+                </div>
+
+                <div class="tile t-3x2 glass-card p-4" data-title="Auto-categorize">
+                    <div class="tile-inner">
+                        <div class="tile-title text-primary-dark">Auto-Categorize</div>
+                        <div class="tile-desc">ML-backed categorization improves as you use it.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div class="text-center">
+                    <div class="text-3xl font-extrabold text-primary" data-count="250">0</div>
+                    <div class="text-sm text-gray-600">Active Users</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-extrabold text-primary" data-count="15.2">0</div>
+                    <div class="text-sm text-gray-600">Million Tracked</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-extrabold text-primary" data-count="50">0</div>
+                    <div class="text-sm text-gray-600">Countries</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-extrabold text-primary" data-count="4.8">0</div>
+                    <div class="text-sm text-gray-600">App Rating</div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <section id="track" class="py-16">
+        <div class="max-w-4xl mx-auto px-6 text-center">
+            <h3 class="text-2xl font-semibold">Ready to take control of your money?</h3>
+            <p class="text-gray-600 mt-2">Start tracking in seconds. Try the free trial.</p>
+            <div class="mt-6">
+                <button
+                    class="bg-primary py-2 px-4 rounded-2xl text-white text-md tracking-tighter hover:-translate-y-2 hover:scale-101 transition-translate duration-300 ease-easeInOut cursor-pointer">
+                    Start Free Trial
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-12 border-t border-gray-100 bg-white">
+        <div class="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div>
+                <div class="text-xl font-bold text-primary">SplitWith</div>
+                <div class="mt-2 text-sm text-gray-600">Effortless expense management & bill splitting.</div>
+                <div class="mt-3"><span
+                        class="inline-block px-3 py-1 bg-gradient-to-r from-primary-dark to-primary-light text-white text-xs rounded-full">Made
+                        in India</span></div>
+            </div>
+
+            <div>
+                <div class="font-semibold mb-2">Product</div>
+                <ul class="text-sm text-gray-600 space-y-2">
+                    <li><a href="#overview">Overview</a></li>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#bento">Bento</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <div class="font-semibold mb-2">Company</div>
+                <ul class="text-sm text-gray-600 space-y-2">
+                    <li><a href="#">About</a></li>
+                    <li><a href="#">Careers</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <div class="font-semibold mb-2">Built by</div>
+                <div class="text-sm text-gray-600">Aryan Chheda</div>
+                <div class="mt-2 space-x-2">
+                    <a href="https://www.instagram.com/aryan_chheda7" class="text-sm text-gray-600">Instagram</a> ·
+                    <a href="https://in.linkedin.com/in/aryan-chheda-19ab54363" class="text-sm text-gray-600">LinkedIn</a> ·
+                    <a href="https://ac-portfolio-phi.vercel.app/" class="text-sm text-gray-600">Portfolio</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-6xl mx-auto px-6 mt-8 text-center text-sm text-gray-500">
+            © 2025 SplitWith. All rights reserved.
+        </div>
+    </footer>
+
+    <script>
+        // GSAP
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Parallax hero: mousemove + small scroll
+        (function heroParallax() {
+            const layer1 = document.getElementById('layer-1');
+            const layer2 = document.getElementById('layer-2');
+            const hero = document.querySelector('.hero');
+
+            // mousemove
+            hero.addEventListener('mousemove', (e) => {
+                const rect = hero.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width - 0.5;
+                const y = (e.clientY - rect.top) / rect.height - 0.5;
+                gsap.to(layer1, { x: x * 18, y: y * 12, rotation: x * 6, duration: 0.6, ease: "power3.out" });
+                gsap.to(layer2, { x: x * -22, y: y * -14, rotation: x * -4, duration: 0.6, ease: "power3.out" });
+            });
+
+            // subtle scroll parallax
+            gsap.to(layer1, { yPercent: -8, scrollTrigger: { trigger: hero, start: "top top", end: "bottom top", scrub: 0.6 } });
+            gsap.to(layer2, { yPercent: -16, scrollTrigger: { trigger: hero, start: "top top", end: "bottom top", scrub: 0.5 } });
+        })();
+
+        // Magnetic buttons
+        (function magneticButtons() {
+            const magnets = document.querySelectorAll('[data-magnetic]');
+            magnets.forEach(btn => {
+                const strength = 40;
+                btn.style.transition = 'transform 0.18s cubic-bezier(.2,.9,.2,1)';
+                btn.addEventListener('mousemove', (e) => {
+                    const rect = btn.getBoundingClientRect();
+                    const x = (e.clientX - rect.left) - rect.width / 2;
+                    const y = (e.clientY - rect.top) - rect.height / 2;
+                    btn.style.transform = `translate(${x / strength}px, ${y / strength}px)`;
+                });
+                btn.addEventListener('mouseleave', () => {
+                    btn.style.transform = 'translate(0,0)';
+                });
+                btn.addEventListener('mousedown', () => {
+                    btn.style.transform += ' scale(.98)';
+                });
+                btn.addEventListener('mouseup', () => {
+                    btn.style.transform = 'translate(0,0)';
+                });
+            });
+        })();
+
+        // Overview cards animation
+        gsap.utils.toArray('.glass-card').forEach((card, i) => {
+            gsap.from(card, {
+                scrollTrigger: {
+                    trigger: card,
+                    start: 'top 85%',
+                    toggleActions: 'play none none none'
+                },
+                opacity: 0,
+                y: 20,
+                duration: .6,
+                delay: i * 0.06,
+                ease: "power2.out"
+            });
+        });
+
+        // Stats counters
+        function animateNumber(el, to, decimals = (String(to).includes('.') ? 1 : 0), duration = 1600) {
+            let start = 0;
+            const steps = Math.max(1, Math.floor(duration / 16));
+            const increment = (to - start) / steps;
+            let current = start, step = 0;
+            const id = setInterval(() => {
+                current += increment;
+                step++;
+                if (step >= steps) {
+                    clearInterval(id);
+                    el.textContent = to;
+                } else {
+                    el.textContent = (Number(current)).toFixed(decimals);
+                }
+            }, 16);
+        }
+
+        document.querySelectorAll('[data-count]').forEach(el => {
+            ScrollTrigger.create({
+                trigger: el,
+                start: 'top 85%',
+                onEnter: () => {
+                    const to = parseFloat(el.getAttribute('data-count'));
+                    animateNumber(el, to);
+                },
+                once: true
+            });
+        });
+
+        // Chart.js (small + large)
+        const ctxSmall = document.getElementById('expenseChartLarge').getContext('2d');
+        const chartLarge = new Chart(ctxSmall, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Spending',
+                    // FIX: Use Maroon CSS variable for consistency in Chart.js
+                    data: [12000, 19000, 15000, 25000, 22000, 30000],
+                    borderColor: '#800000', 
+                    backgroundColor: 'rgba(128,0,0,0.06)',
+                    fill: true,
+                    tension: .4,
+                    pointRadius: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true, ticks: { callback: v => '₹' + v.toLocaleString() } },
+                    x: { grid: { display: false } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        // Lottie micro-interactions
+        // NOTE: These use public Lottie json assets. Replace URLs with your chosen animations if desired.
+        const lottieOptions = [
+            { id: 'lottie-1', url: 'https://assets10.lottiefiles.com/packages/lf20_jcikwtux.json' }, // receipt-like
+            { id: 'lottie-2', url: 'https://assets10.lottiefiles.com/packages/lf20_5ngs2ksb.json' }, // split icon
+            { id: 'lottie-bento-1', url: 'https://assets10.lottiefiles.com/packages/lf20_pnx6ix0k.json' } // analytics spark
+        ];
+
+        lottieOptions.forEach(opt => {
+            try {
+                lottie.loadAnimation({
+                    container: document.getElementById(opt.id),
+                    renderer: 'svg',
+                    loop: true,
+                    autoplay: true,
+                    path: opt.url
+                });
+            } catch (e) { console.warn('Lottie failed:', e); }
+        });
+
+        // Smooth anchor scroll
+        document.querySelectorAll('a[href^="#"]').forEach(a => {
+            a.addEventListener('click', (ev) => {
+                const href = a.getAttribute('href');
+                if (!href || href === '#') return;
+                ev.preventDefault();
+                const el = document.querySelector(href);
+                if (!el) return;
+                const offset = 88; // navbar
+                const top = el.getBoundingClientRect().top + window.scrollY - offset;
+                window.scrollTo({ top, behavior: 'smooth' });
+            });
+        });
+
+        // Accessibility: reduce motion if prefers-reduced-motion
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            gsap.globalTimeline.timeScale(3); // speed up / reduce perceived motion
+        }
+    </script>
+
+</body>
+
+</html>

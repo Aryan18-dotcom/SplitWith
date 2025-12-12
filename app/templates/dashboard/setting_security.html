@@ -1,0 +1,125 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Security Settings{% endblock %}
+
+{% block content %}
+<div class="w-full px-6 py-8 max-w-4xl mx-auto">
+
+    <!-- Page Title -->
+    <h1 class="text-3xl font-bold text-neutral-900 mb-8 flex items-center gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3zm0 0c0 1.657 1.343 3 3 3s3-1.343 3-3-1.343-3-3-3-3 1.343-3 3z" />
+        </svg>
+        Security Settings
+    </h1>
+
+    <form method="POST" class="space-y-8">
+
+        <!-- Change Password -->
+        <div class="bg-white shadow-lg rounded-xl p-6 space-y-6 border border-neutral-200">
+            <h2 class="text-xl font-semibold text-neutral-800 mb-4 flex items-center gap-2">
+                Change Password
+                <span class="relative group cursor-pointer text-neutral-500 font-bold">!
+                    <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-72 bg-neutral-800 text-white text-sm rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                        Choose a strong password and change it wisely to secure your account.
+                    </span>
+                </span>
+            </h2>
+
+            <label class="block text-neutral-700 font-medium mb-1">Current Password</label>
+            <input type="password" name="current_password" placeholder="Enter current password"
+                   class="w-full border border-neutral-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-neutral-400">
+
+            <label class="block text-neutral-700 font-medium mb-1">New Password</label>
+            <input type="password" name="new_password" placeholder="Enter new password"
+                   class="w-full border border-neutral-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-neutral-400">
+
+            <label class="block text-neutral-700 font-medium mb-1">Confirm New Password</label>
+            <input type="password" name="confirm_new_password" placeholder="Confirm new password"
+                   class="w-full border border-neutral-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-neutral-400">
+
+            <button type="submit"
+                    class="px-6 py-3 bg-neutral-800 hover:bg-neutral-900 text-white font-semibold rounded-lg shadow transition mt-4">
+                Update Password
+            </button>
+        </div>
+
+        <!-- Two-Factor Authentication -->
+        <div class="bg-white shadow-lg rounded-xl p-6 space-y-6 border border-neutral-200">
+            <h2 class="text-xl font-semibold text-neutral-800 mb-4">Two-Factor Authentication (2FA)</h2>
+            <div class="flex items-center justify-between py-3">
+                <div>
+                    <p class="text-neutral-700 font-medium">2FA Status:</p>
+                    <p class="text-neutral-500 text-sm">
+                        {% if current_user['2fa_enabled'] %}
+                            Enabled via {{ current_user['2fa_method'] | capitalize }}
+                        {% else %}
+                            Disabled
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    {% if current_user['2fa_enabled'] %}
+                    <button type="submit" name="action" value="disable_2fa"
+                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg shadow transition">
+                        Disable
+                    </button>
+                    {% else %}
+                    <button type="submit" name="action" value="enable_2fa"
+                            class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg shadow transition">
+                        Enable
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Questions -->
+        <div class="bg-white shadow-lg rounded-xl p-6 space-y-6 border border-neutral-200">
+            <h2 class="text-xl font-semibold text-neutral-800 mb-4">Security Questions</h2>
+            <p class="text-neutral-500 text-sm mb-4">Set or update your security questions to recover your account.</p>
+            <div class="space-y-3">
+                {% for i in range(3) %}
+                <div>
+                    <label class="block text-neutral-700 font-medium mb-1">Question {{ i+1 }}</label>
+                    <input type="text" name="question_{{i}}" placeholder="Enter security question"
+                           class="w-full border border-neutral-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-neutral-400"
+                           value="{{ current_user.security_questions[i]['question'] if current_user.security_questions|length > i else '' }}">
+                    <label class="block text-neutral-700 font-medium mt-2 mb-1">Answer</label>
+                    <input type="password" name="answer_{{i}}" placeholder="Enter answer"
+                           class="w-full border border-neutral-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-neutral-400">
+                </div>
+                {% endfor %}
+            </div>
+            <button type="submit" name="action" value="update_security_questions"
+                    class="px-6 py-3 bg-neutral-800 hover:bg-neutral-900 text-white font-semibold rounded-lg shadow transition mt-4">
+                Update Security Questions
+            </button>
+        </div>
+
+        <!-- Account Activity Alerts -->
+        <div class="bg-white shadow-lg rounded-xl p-6 space-y-6 border border-neutral-200">
+            <h2 class="text-xl font-semibold text-neutral-800 mb-4">Account Activity Alerts</h2>
+            {% for alert, enabled in current_user.account_activity_alerts.items() %}
+            <div class="flex items-center justify-between py-3 border-b border-neutral-200 last:border-none">
+                <div>
+                    <p class="text-neutral-700 font-medium">{{ alert.replace('_', ' ').capitalize() }}</p>
+                    <p class="text-neutral-500 text-sm">Receive notifications for this activity.</p>
+                </div>
+                <div>
+                    <input type="checkbox" name="alert_{{ alert }}" class="h-5 w-5" {% if enabled %}checked{% endif %}>
+                </div>
+            </div>
+            {% endfor %}
+            <button type="submit" name="action" value="update_alerts"
+                    class="px-6 py-3 bg-neutral-800 hover:bg-neutral-900 text-white font-semibold rounded-lg shadow transition mt-4">
+                Update Alerts
+            </button>
+        </div>
+
+    </form>
+    <!-- Get Back Button -->
+        <div class="flex items-end justify-end mt-4 ml-auto w-full">
+            <a href="{{ url_for('settings.settings') }}" class="px-6 py-3 bg-neutral-600 hover:bg-neutral-700 text-white rounded-lg shadow transition">Get Back!</a>
+        </div>
+</div>
+{% endblock %}

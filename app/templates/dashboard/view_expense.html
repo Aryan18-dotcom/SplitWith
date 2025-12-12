@@ -1,0 +1,158 @@
+{% extends "dashboard/base.html" %}
+{% block title %}View Expense{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-6 space-y-6">
+
+    <!-- 1️⃣ Expense Overview -->
+    <div class="bg-white p-6 rounded-2xl shadow flex justify-between items-center">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800">{{ expense.title or
+                "New Expense" }}</h2>
+            <p class="text-sm text-gray-500 mt-1">
+                Created by:
+                {% if expense.created_by and users.get(expense.created_by) %}
+                {{ users[expense.created_by].username }}
+                {% else %}
+                Unknown
+                {% endif %}
+            </p>
+            <p class="text-sm text-gray-500 mt-1">
+                Created at: {{ expense.created_at.strftime("%d %b %Y, %I:%M %p")
+                if expense.created_at else "Unknown" }}
+            </p>
+            {% if group %}
+            <p class="text-sm text-gray-500 mt-1">
+                Group:
+                <a href="{{ url_for('group.group_details', group_id=group._id) }}"
+                    class="text-blue-600 underline font-medium">
+                    {{ group.group_title }}
+                </a>
+            </p>
+            {% endif %}
+        </div>
+
+        <div class="text-3xl font-bold text-green-600">
+            ₹{{ "%.2f"|format(expense.amount or 0) }}
+        </div>
+    </div>
+
+    <!-- 2️⃣ Payment Breakdown -->
+    <div class="bg-white p-6 rounded-2xl shadow space-y-2">
+        <h3 class="font-semibold text-gray-800 text-lg">Payment Details</h3>
+        {% for uid, amt in expense.custom_split.items() %}
+        <p class="text-gray-700">
+            <span class="font-medium">
+                {% if users.get(uid) %}
+                {{ users[uid].username }}
+                {% else %}
+                Unknown
+                {% endif %}
+            </span>
+            paid ₹{{ "%.2f"|format(amt) }}
+        </p>
+        {% endfor %}
+    </div>
+
+    <!-- 3️⃣ Who owes whom -->
+    <div class="bg-white p-6 rounded-2xl shadow space-y-2">
+        <h3 class="font-semibold text-gray-800 text-lg">Who owes whom</h3>
+        {% if expense.split_details %}
+            {% for detail in expense.split_details %}
+            <div class="flex justify-between items-center p-3 rounded-lg bg-gray-50 border">
+                <div class="text-gray-700">
+                    {% set from_uid = detail.from_user if detail.from_user is string
+                    else detail.from_user._id %}
+                        {% set to_uid = detail.to_user if detail.to_user is string else
+                        detail.to_user._id %}
+
+                            {% if from_uid == current_user_id %}
+                                You
+                            {% else %}
+                                {{ users.get(from_uid).username if users.get(from_uid) else
+                                "Unknown" }}
+                            {% endif %}
+                                owes
+                            {% if to_uid == current_user_id %}
+                                You
+                    {% else %}
+                        {{ users.get(to_uid).username if users.get(to_uid) else
+                        "Unknown" }}
+                    {% endif %}
+                </div>
+                <div class="text-gray-800 font-medium">
+                    ₹{{ "%.2f"|format(detail.amount) }}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-gray-500">No dues for this expense.</p>
+        {% endif %}
+
+    </div>
+
+    <!-- 4️⃣ Quick Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white p-6 rounded-2xl shadow">
+        <div class="col-span-2">
+            <h3 class="font-semibold text-gray-800 text-lg">In Context of this
+                Expence.</h3>
+        </div>
+        <div class="bg-blue-100 p-4 rounded-xl shadow text-center">
+            <p class="text-gray-600 text-sm">You Owe</p>
+            <p class="text-red-600 font-bold text-xl">-₹{{
+                "%.2f"|format(expense.you_owe or 0) }}</p>
+        </div>
+        <div class="bg-green-100 p-4 rounded-xl shadow text-center">
+            <p class="text-gray-600 text-sm">You Are Owed</p>
+            <p class="text-green-600 font-bold text-xl">+₹{{
+                "%.2f"|format(expense.you_are_owed or 0) }}</p>
+        </div>
+    </div>
+
+    <!-- 5️⃣ View Group Button -->
+    {% if group %}
+        <div class="bg-white p-6 rounded-2xl shadow space-y-4">
+            <!-- Group Title -->
+            <h3 class="text-xl font-bold text-gray-800">Group Data: <span class="text-neutral-500">{{ group.group_title }}</span></h3>
+
+            <!-- Total Expenses -->
+            <p class="text-gray-600">Total Expenses: ₹{{ "%.2f"|format(group.total_balance or 0) }}</p>
+
+            <!-- User Balance -->
+            <p class="text-lg font-semibold 
+                {% if net_balance > 0 %} text-green-600
+                {% elif net_balance < 0 %} text-red-600
+                {% else %} text-gray-700
+                {% endif %}">
+                Balance: 
+                {% if net_balance > 0 %}
+                    You will receive ₹{{ "%.2f"|format(net_balance) }}
+                {% elif net_balance < 0 %}
+                    You owe ₹{{ "%.2f"|format(net_balance|abs) }}
+                {% else %}
+                    All settled up!
+                {% endif %}
+            </p>
+
+            <!-- Curiosity Message -->
+            <p class="text-gray-500">Want to see who owes whom or check other expenses? Click below!</p>
+
+            <!-- CTA Button -->
+            <div class="mt-4 text-right">
+                <a href="{{ url_for('group.group_details', group_id=group._id) }}"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition">
+                    View Group
+                </a>
+            </div>
+
+        </div>
+    {% endif %}
+
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+{% endblock %}

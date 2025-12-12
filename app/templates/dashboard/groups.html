@@ -1,0 +1,97 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Groups{% endblock %}
+
+{% block content %}
+
+<div class="flex justify-between items-center mb-6">
+    <h2 class="text-xl font-bold text-neutral-900">Your Groups</h2>
+    {% if not groups %}
+        
+    {% endif %}
+    <a href="{{ url_for('group.create_group') }}"
+        class="px-4 py-2 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition text-sm font-medium">
+        + Add Group
+    </a>
+</div>
+
+<div class="space-y-4">
+
+    {% for group in groups %}
+        <a href="{{ url_for('group.group_details', group_id=group._id) }}"
+            class="block p-5 bg-white rounded-xl shadow hover:shadow-lg transition">
+
+            <div class="flex items-center justify-between">
+
+                <!-- LEFT -->
+                <div class="flex items-center space-x-4">
+
+                    <!-- Group image or initials -->
+                    {% if group.group_photo %}
+                    <img src="{{ url_for('static', filename='uploads/groups/' + group.group_photo) }}"
+                        class="w-12 h-12 rounded-full object-cover shadow">
+                    {% else %}
+                    {% set initials = group.group_title.split()[0][0] ~
+                    group.group_title.split()[-1][0] %}
+                    <div
+                        class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg shadow">
+                        {{ initials.upper() }}
+                    </div>
+                    {% endif %}
+
+                    <div>
+                        <h3 class="font-semibold text-neutral-900">{{
+                            group.group_title }}</h3>
+
+                        <!-- Member Count -->
+                        <p class="text-sm text-neutral-400">
+                            {{ group.group_members | length }} members
+                        </p>
+
+                        <!-- Member avatars -->
+                        <div class="flex mt-1">
+                            {% for member in group.members_full[:5] %}
+                            {% if member.profile_pic %}
+                            <img src="/static/profile/{{ member.profile_pic }}"
+                                class="w-6 h-6 rounded-full -ml-1 border border-white shadow">
+                            {% else %}
+                            <div
+                                class="w-6 h-6 bg-neutral-200 rounded-full -ml-1 border border-white shadow flex items-center justify-center text-[10px] text-neutral-600">
+                                <svg width="12" height="12" fill="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path
+                                        d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z" />
+                                </svg>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- RIGHT SIDE MONEY -->
+                <div class="text-right">
+                    {% if group.total_balance < 0 %}
+                        <p class="text-red-600 font-semibold">
+                            <span class="text-xl">-</span>₹{{ group.total_balance | abs }}
+                        </p>
+                    {% elif group.total_balance > 0 %}
+                        <p class="text-green-600 font-semibold">
+                            <span class="text-xl">+</span>₹{{ group.total_balance }}
+                        </p>
+                    {% else %}
+                        <p class="text-neutral-400 font-medium">
+                            No balance
+                        </p>
+                    {% endif %}
+                </div>
+
+
+            </div>
+
+        </a>
+    {% endfor %}
+
+</div>
+
+{% endblock %}

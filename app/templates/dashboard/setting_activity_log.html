@@ -1,0 +1,80 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+
+<div class="w-full px-6 py-6">
+
+    <!-- Page Title -->
+    <h2 class="text-xl font-semibold text-neutral-800 mb-6 flex items-center gap-2">
+        <i class="fa-solid fa-clock-rotate-left text-neutral-700"></i>
+        Recent Login Activity
+    </h2>
+
+    <!-- Description -->
+    <p class="text-neutral-600 mb-6 text-sm">
+        Below is information about your most recent login session including device, browser, and IP details.
+    </p>
+
+    <div class="bg-white shadow-sm border border-neutral-200 rounded-xl p-5">
+
+        {% if activity_logs %}
+            <div class="border border-neutral-200 rounded-lg p-5">
+
+                <!-- Device Title -->
+                <h3 class="text-lg font-medium text-neutral-800 mb-4">
+                    Last Active Device
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                    <div>
+                        <p class="text-sm text-neutral-500">Device Type</p>
+                        <p class="text-neutral-800 font-medium">{{ activity_logs.device_type }}</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-neutral-500">Device Name</p>
+                        <p class="text-neutral-800 font-medium">{{ activity_logs.device_name }}</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-neutral-500">Operating System</p>
+                        <p class="text-neutral-800 font-medium">{{ activity_logs.os }}</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-neutral-500">Browser</p>
+                        <p class="text-neutral-800 font-medium">{{ activity_logs.browser }}</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-neutral-500">IP Address</p>
+                        <p class="text-neutral-800 font-medium">{{ activity_logs.ip }}</p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-neutral-500">Login Time</p>
+                        <p class="text-neutral-800 font-medium">
+                            {{ activity_logs.login_time.strftime('%B %d, %Y at %I:%M %p') }}
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        {% else %}
+            <!-- Empty State -->
+            <div class="text-center py-12">
+                <i class="fa-regular fa-folder-open text-4xl text-neutral-400 mb-4"></i>
+                <p class="text-neutral-500">No login activity records found.</p>
+            </div>
+        {% endif %}
+
+    </div>
+    <div class="flex items-end justify-end mt-2 ml-auto">
+        <a href="{{ url_for('settings.settings') }}" class="px-6 py-3 bg-neutral-600 hover:bg-neutral-700 text-white rounded-lg shadow transition">Get Back!</a>
+    </div>
+
+</div>
+
+{% endblock %}

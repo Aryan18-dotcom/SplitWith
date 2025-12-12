@@ -1,0 +1,61 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Add Expense{% endblock %}
+
+{% block content %}
+<h2 class="text-xl font-bold text-neutral-800 mb-4">Add New Expense</h2>
+
+<form method="POST" action="{{ url_for('add_expense_route') }}" class="space-y-4 bg-white p-6 rounded-xl shadow">
+  <div>
+    <label class="block text-neutral-700 font-medium mb-1">Title</label>
+    <input type="text" name="title" required
+      class="w-full p-3 border rounded-lg focus:ring-magenta-500 focus:border-magenta-500"
+      placeholder="e.g., Dinner, Rent">
+  </div>
+  <div>
+    <label class="block text-neutral-700 font-medium mb-1">Description</label>
+    <textarea name="description" id="description" class="w-full p-3 border rounded-lg focus:ring-magenta-500 focus:border-magenta-500"
+      placeholder="e.g., the yug's BD."></textarea>
+  </div>
+  
+  <div>
+    <label class="block text-neutral-700 font-medium mb-1">Amount</label>
+    <input type="number" name="amount" step="0.01" required
+      class="w-full p-3 border rounded-lg focus:ring-magenta-500 focus:border-magenta-500" min="0.01"
+      placeholder="0.00">
+  </div>
+ <div>
+    <label class="block text-neutral-700 font-medium mb-1">Group</label>
+    <select name="group_id" required
+      class="w-full p-3 border rounded-lg focus:ring-magenta-500 focus:border-magenta-500">
+      
+      <option value="">Select Group</option>
+
+      {% for group in groups %}
+      <option value="{{ group.group_id }}" class="text-neutral-600">
+        {{ group.name }}
+      </option>
+      {% endfor %}
+      
+    </select>
+</div>
+
+  <!-- Add Members -->
+  <div>
+    <label class="text-sm font-medium text-neutral-700">Add Members</label>
+    <select name="members" multiple required
+      class="mt-1 p-3 w-full h-40 border border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500 transition shadow-sm text-sm">
+      {% for u in users %}
+      {% if u.user_id != current_user_id %}
+      <option value="{{ u.user_id }}">{{ u.username }}</option>
+      {% endif %}
+      {% endfor %}
+    </select>
+    <p class="text-xs text-gray-500 mt-1">
+      Hold <strong>Ctrl</strong> (Windows) or <strong>Cmd</strong> (Mac) to select multiple members.
+    </p>
+  </div>
+  <button type="submit" class="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition">
+    + Add Expense
+  </button>
+</form>
+{% endblock %}
