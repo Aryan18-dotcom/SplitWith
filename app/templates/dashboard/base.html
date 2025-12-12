@@ -6,79 +6,90 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Shared Expense Tracker{% endblock %}</title>
 
-  <!-- Load Inter Font -->
+  <!-- Inter Font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- Load Remix Icons (Used for navigation icons) -->
+  <!-- Remix Icons -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.7.0/fonts/remixicon.css" rel="stylesheet" />
 
-  <!-- Load Tailwind CSS -->
+  <!-- Tailwind -->
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- Chart.js CDN (ensure included in base or include here) -->
+
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
 
-  <!-- GSAP CDN -->
+  <!-- GSAP -->
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
-
 
   {% block extra_styles %}{% endblock %}
 </head>
 
 <body class="font-sans m-0 bg-bg-light text-[#222] relative">
-  <!-- App Container: flex, min-h-screen -->
-  <div class="flex min-h-screen">
+
+  <!-- App Container -->
+  <div class="flex min-h-screen w-full">
 
     <!-- Sidebar -->
-    <aside class="w-64 p-6 border-r border-gray-100 bg-white flex-shrink-0 fixed top-0">
+    <aside id="sidebar"
+      class="p-6 border-r border-gray-100 bg-white flex-shrink-0 hidden
+              fixed inset-0 z-40 w-full flex-col items-center justify-start gap-4
+             md:block md:relative md:w-64">
+
+      <!-- Close Button (mobile) -->
+      <button id="closeSidebar" class="md:hidden self-end text-2xl mb-2 mt-2 cursor-pointer">
+        ✕
+      </button>
 
       <!-- Brand -->
-      <div class="font-bold text-xl text-accent-purple mb-5">Shared Expense
-        Tracker</div>
-      <div class="text-sm text-muted-text mb-4">Manage groups & split
-        costs</div>
+      <div class="font-bold text-xl text-accent-purple mb-1">
+        Shared Expense Tracker
+      </div>
+      <div class="text-sm text-muted-text mb-4">
+        Manage groups & split costs
+      </div>
 
       <!-- Navigation -->
-      <nav class="mt-4">
-
+      <nav class="mt-2 w-full flex flex-col items-center justify-center gap-2 md:block">
         <a href="{{ url_for('home.dashboard') }}"
-          class="block p-3 rounded-lg text-gray-700 text-base mb-2 transition duration-150 hover:bg-gray-50 hover:text-gray-900 ">
+          class="block p-3 rounded-lg text-gray-700 mb-2 hover:bg-gray-50 hover:text-gray-900">
           <i class="ri-dashboard-line mr-3"></i>Dashboard
         </a>
 
         <a href="{{ url_for('group.list_groups') }}"
-          class="block p-3 rounded-lg text-gray-700 text-base mb-2 transition duration-150 hover:bg-gray-50 hover:text-gray-900">
+          class="block p-3 rounded-lg text-gray-700 mb-2 hover:bg-gray-50 hover:text-gray-900">
           <i class="ri-group-line mr-3"></i>Groups
         </a>
 
         <a href="{{ url_for('expense.expenses') }}"
-          class="block p-3 rounded-lg text-gray-700 text-base mb-2 transition duration-150 hover:bg-gray-50 hover:text-gray-900 ">
+          class="block p-3 rounded-lg text-gray-700 mb-2 hover:bg-gray-50 hover:text-gray-900">
           <i class="ri-wallet-3-line mr-3"></i>Expenses
         </a>
 
         <a href="{{ url_for('reports.reports_home') }}"
-          class="block p-3 rounded-lg text-gray-700 text-base mb-2 transition duration-150 hover:bg-gray-50 hover:text-gray-900 ">
+          class="block p-3 rounded-lg text-gray-700 mb-2 hover:bg-gray-50 hover:text-gray-900">
           <i class="ri-bar-chart-2-line mr-3"></i>Reports
         </a>
 
         <a href="{{ url_for('settings.settings') }}"
-          class="block p-3 rounded-lg text-gray-700 text-base mb-2 transition duration-150 hover:bg-gray-50 hover:text-gray-900 ">
+          class="block p-3 rounded-lg text-gray-700 mb-2 hover:bg-gray-50 hover:text-gray-900">
           <i class="ri-settings-3-line mr-3"></i>Settings
         </a>
       </nav>
     </aside>
-    <div class="w-64 h-full"></div>
+
     <!-- Main Content Area -->
     <main class="flex-1 p-6 sm:p-8">
-      <div class="absolute top-2 left-[45%] -traslate-x-[50%] z-20">
-        <!-- Flash messages -->
+
+      <!-- Flash Messages -->
+      <div class="absolute top-2 left-1/2 -translate-x-1/2 z-20">
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         <div class="space-y-3 mb-4">
           {% for category, message in messages %}
           <div class="p-3 rounded-lg text-sm
-                {% if category == 'error' %} bg-red-100 text-red-700 border border-red-300
-                {% elif category == 'success' %} bg-green-100 text-green-700 border border-green-300
-                {% else %} bg-gray-100 text-gray-700 border border-gray-300 {% endif %}">
+            {% if category == 'error' %} bg-red-100 text-red-700 border border-red-300
+            {% elif category == 'success' %} bg-green-100 text-green-700 border border-green-300
+            {% else %} bg-gray-100 text-gray-700 border border-gray-300 {% endif %}">
             {{ message }}
           </div>
           {% endfor %}
@@ -86,21 +97,27 @@
         {% endif %}
         {% endwith %}
       </div>
-      <!-- Top Bar/Header -->
+
+      <!-- Top Bar -->
       <div class="flex justify-between items-center mb-6 pb-2">
         <div>
           <div class="text-2xl font-semibold text-gray-800">Dashboard</div>
-          <div class="text-sm text-xs text-neutral-500 mt-1">Your
-            comprehensive dashbaord overview.</div>
+          <div class="text-xs text-neutral-500 mt-1">
+            Your comprehensive dashboard overview.
+          </div>
         </div>
+
         <div class="flex gap-3 items-center">
+
           <!-- Profile Button -->
-          <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
             <a href="{{ url_for('settings.settings_profile') }}"
-              class="rounded-full bg-card-light text-gray-700 border border-gray-200 cursor-pointer shadow-sm hover:border-gray-300 transition duration-150 text-sm font-medium">
+              class="rounded-full border bg-card-light border-gray-200 shadow-sm hover:border-gray-300">
+
               {% if current_user.profile_pic %}
-              <img src="{{ current_user.profile_pic or '/static/default_profile.png' }}" alt="{{ current_user.username + 'Profile Pic'}}"
+              <img src="{{ current_user.profile_pic or '/static/default_profile.png' }}"
                 class="size-10 rounded-full object-cover shadow">
+
               {% else %}
               {% set initials = current_user.full_name.split()[0][0] ~ current_user.full_name.split()[-1][0] %}
               <div class="size-10 rounded-full text-neutral-700 font-extrabold flex items-center justify-center shadow">
@@ -108,25 +125,41 @@
               </div>
               {% endif %}
             </a>
-            <div class="text-sm text-gray-700 font-medium">
-              <h2 class="font-bold text-md text-neutral-900 text-capitalize">{{
-                current_user.full_name }}</h2>
+
+            <div class="text-sm text-gray-700 font-medium md:block hidden">
+              <h2 class="font-bold text-md text-neutral-900">{{ current_user.full_name }}</h2>
               <p class="text-xs text-neutral-500">{{ current_user.email }}</p>
             </div>
-
           </div>
-          <!-- Logout Button -->
-          <!-- <a href="{{ url_for('userAuth.logout') }}" 
-            class="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer shadow-sm hover:bg-gray-200 transition duration-150 text-sm font-medium">
-            Logout
-          </a> -->
+
+          <!-- Hamburger Button (mobile) -->
+          <button id="openSidebar" class="md:hidden text-3xl ml-3 cursor-pointer">
+            ☰
+          </button>
         </div>
       </div>
 
-      <!-- Page Content Block -->
+      <!-- Page Content -->
       {% block content %}{% endblock %}
     </main>
   </div>
+
+  <!-- Sidebar Toggle Script -->
+  <script>
+    const sidebar = document.getElementById("sidebar");
+    const openBtn = document.getElementById("openSidebar");
+    const closeBtn = document.getElementById("closeSidebar");
+
+    openBtn.addEventListener("click", () => {
+      sidebar.classList.remove("hidden");
+      sidebar.classList.add("flex");
+    });
+
+    closeBtn.addEventListener("click", () => {
+      sidebar.classList.add("hidden");
+      sidebar.classList.remove("flex");
+    });
+  </script>
 
   {% block extra_scripts %}{% endblock %}
 </body>
