@@ -24,8 +24,7 @@ class GroupModel:
 
     @staticmethod
     def collection():
-        db = GetDB._get_db()
-        return db.groups
+        return mongo.db.groups
 
     # -------------------------
     # CREATE GROUP

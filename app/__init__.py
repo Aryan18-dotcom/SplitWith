@@ -1,17 +1,15 @@
 from flask import Flask
-from flask_pymongo import PyMongo
 from config import Config
-
-mongo = PyMongo()
+from .extensions import mongo   # Import the global mongo instance
 
 def create_app(config_class=Config):
     app = Flask(__name__, static_folder="../static")
     app.config.from_object(config_class)
 
-    # Initialize Mongo
+    # Initialize MongoDB ONCE globally
     mongo.init_app(app)
 
-    # Import blueprints here to avoid circular imports
+    # Import blueprints after app is created
     from .routes.userAuth import user_bp
     from .routes.otp import otp_bp
     from .routes.dashboard.homeRoute import home_bp

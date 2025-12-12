@@ -10,8 +10,7 @@ class OTPModel:
 
     @staticmethod
     def collection():
-        db = GetDB._get_db()
-        return db.otps
+        return mongo.db.otps
 
     @staticmethod
     def generate_otp(email):

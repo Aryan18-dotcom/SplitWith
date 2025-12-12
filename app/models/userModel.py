@@ -7,8 +7,7 @@ class UserModel:
 
     @staticmethod
     def collection():
-        db = GetDB._get_db()
-        return db.users  # collection name in lowercase
+        return mongo.db.users  # collection name in lowercase
 
 
     @staticmethod
