@@ -1,6 +1,6 @@
 from flask import Flask
 from config import Config
-from .models.extensions import mongo   # Import the global mongo instance
+from .extensions import mongo   # Import the global mongo instance
 
 def create_app(config_class=Config):
     app = Flask(__name__, static_folder="../static")
