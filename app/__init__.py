@@ -1,6 +1,8 @@
 from flask import Flask
 from pymongo import MongoClient
 from config import Config
+from pymongo.errors import ServerSelectionTimeoutError
+import logging
 
 mongo = None
 
@@ -8,9 +10,21 @@ def create_app(config_class=Config):
     global mongo
     app = Flask(__name__, static_folder="../static")
     app.config.from_object(config_class)
+    logging.basicConfig(level=logging.DEBUG)
 
     # Initialize Mongo client
-    mongo = MongoClient(app.config["MONGO_URI"])
+    mongo = MongoClient(
+        app.config["MONGO_URI"],
+        serverSelectionTimeoutMS=5000
+    )
+
+    try:
+        mongo.admin.command("ping")
+        print("✅ Mongo connected")
+    except ServerSelectionTimeoutError as e:
+        print("❌ Mongo connection failed:", e)
+        raise
+
     app.mongo_client = mongo
 
     # Import blueprints here to avoid circular imports

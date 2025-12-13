@@ -202,17 +202,17 @@ def settings_security():
 
             if not current_password or not new_password or not confirm_password:
                 flash("All password fields are required.", "error")
-                return redirect(url_for("settings.settings_security"))
+                return redirect(url_for("settings.settings"))
 
             if new_password != confirm_password:
                 flash("New passwords do not match.", "error")
-                return redirect(url_for("settings.settings_security"))
+                return redirect(url_for("settings.settings"))
 
             from werkzeug.security import check_password_hash, generate_password_hash
 
             if not check_password_hash(current_user['password'], current_password):
                 flash("Current password is incorrect.", "error")
-                return redirect(url_for("settings.settings_security"))
+                return redirect(url_for("settings.settings"))
 
             hashed_new_password = generate_password_hash(new_password)
 
@@ -226,7 +226,7 @@ def settings_security():
                 }
             )
             flash("Password updated successfully!", "success")
-            return redirect(url_for("settings.settings_security"))
+            return redirect(url_for("settings.settings"))
 
         # ------------------------------
         # 2️⃣ ENABLE 2FA
@@ -237,7 +237,7 @@ def settings_security():
                 {"$set": {"2fa_enabled": True, "2fa_method": "email"}}
             )
             flash("Two-Factor Authentication enabled!", "success")
-            return redirect(url_for("settings.settings_security"))
+            return redirect(url_for("settings.settings"))
 
         # ------------------------------
         # 3️⃣ DISABLE 2FA
@@ -248,7 +248,7 @@ def settings_security():
                 {"$set": {"2fa_enabled": False}}
             )
             flash("Two-Factor Authentication disabled.", "success")
-            return redirect(url_for("settings.settings_security"))
+            return redirect(url_for("settings.settings"))
 
         # ------------------------------
         # 4️⃣ UPDATE SECURITY QUESTIONS
@@ -274,7 +274,7 @@ def settings_security():
             )
 
             flash("Security questions updated successfully!", "success")
-            return redirect(url_for("settings.settings_security"))
+            return redirect(url_for("settings.settings"))
 
         # ------------------------------
         # 5️⃣ UPDATE ACCOUNT ACTIVITY ALERTS
@@ -293,7 +293,7 @@ def settings_security():
             )
 
             flash("Account activity alerts updated!", "success")
-            return redirect(url_for("settings.settings_security"))
+            return redirect(url_for("settings.settings"))
 
     # ------------------------------
     # GET: Render UI

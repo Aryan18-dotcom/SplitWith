@@ -26,55 +26,62 @@
 
 <body class="font-sans m-0 bg-bg-light text-[#222] relative">
 
+  {% import 'dashboard/loader.html' as loader %}
+
+  <!-- Global Loader (hidden by default) -->
+  <div id="globalLoader" class="hidden">
+    {{ loader.spinner(message='Processing...') }}
+  </div>
+
   <!-- App Container -->
   <div class="flex min-h-screen w-full">
 
     <!-- Sidebar -->
     <aside id="sidebar"
-      class="p-6 border-r border-gray-100 bg-white flex-shrink-0 hidden
-              fixed inset-0 z-40 w-full flex-col items-center justify-start gap-4
-             md:block md:relative md:w-64">
+      class="p-6 border-r border-gray-100 bg-white flex-shrink-0 hidden fixed inset-0 z-40 w-full flex-col items-center justify-start gap-4 md:block md:relative md:w-64">
 
       <!-- Close Button (mobile) -->
       <button id="closeSidebar" class="md:hidden self-end text-2xl mb-2 mt-2 cursor-pointer">
         ✕
       </button>
 
-      <!-- Brand -->
-      <div class="font-bold text-xl text-accent-purple mb-1">
-        Shared Expense Tracker
+      <div class="sticky top-6 left-0">
+        <!-- Brand -->
+        <div class="font-bold text-xl text-accent-purple mb-1">
+          Shared Expense Tracker
+        </div>
+        <div class="text-sm text-muted-text mb-4">
+          Manage groups & split costs
+        </div>
+
+        <!-- Navigation -->
+        <nav class="mt-2 w-full flex flex-col items-center justify-center gap-2 md:block">
+          <a href="{{ url_for('home.dashboard') }}"
+            class="block p-3 rounded-lg text-gray-700 mb-2 hover:bg-gray-50 hover:text-gray-900">
+            <i class="ri-dashboard-line mr-3"></i>Dashboard
+          </a>
+
+          <a href="{{ url_for('group.list_groups') }}"
+            class="block p-3 rounded-lg text-gray-700 mb-2 hover:bg-gray-50 hover:text-gray-900">
+            <i class="ri-group-line mr-3"></i>Groups
+          </a>
+
+          <a href="{{ url_for('expense.expenses') }}"
+            class="block p-3 rounded-lg text-gray-700 mb-2 hover:bg-gray-50 hover:text-gray-900">
+            <i class="ri-wallet-3-line mr-3"></i>Expenses
+          </a>
+
+          <a href="{{ url_for('reports.reports_home') }}"
+            class="block p-3 rounded-lg text-gray-700 mb-2 hover:bg-gray-50 hover:text-gray-900">
+            <i class="ri-bar-chart-2-line mr-3"></i>Reports
+          </a>
+
+          <a href="{{ url_for('settings.settings') }}"
+            class="block p-3 rounded-lg text-gray-700 mb-2 hover:bg-gray-50 hover:text-gray-900">
+            <i class="ri-settings-3-line mr-3"></i>Settings
+          </a>
+        </nav>
       </div>
-      <div class="text-sm text-muted-text mb-4">
-        Manage groups & split costs
-      </div>
-
-      <!-- Navigation -->
-      <nav class="mt-2 w-full flex flex-col items-center justify-center gap-2 md:block">
-        <a href="{{ url_for('home.dashboard') }}"
-          class="block p-3 rounded-lg text-gray-700 mb-2 hover:bg-gray-50 hover:text-gray-900">
-          <i class="ri-dashboard-line mr-3"></i>Dashboard
-        </a>
-
-        <a href="{{ url_for('group.list_groups') }}"
-          class="block p-3 rounded-lg text-gray-700 mb-2 hover:bg-gray-50 hover:text-gray-900">
-          <i class="ri-group-line mr-3"></i>Groups
-        </a>
-
-        <a href="{{ url_for('expense.expenses') }}"
-          class="block p-3 rounded-lg text-gray-700 mb-2 hover:bg-gray-50 hover:text-gray-900">
-          <i class="ri-wallet-3-line mr-3"></i>Expenses
-        </a>
-
-        <a href="{{ url_for('reports.reports_home') }}"
-          class="block p-3 rounded-lg text-gray-700 mb-2 hover:bg-gray-50 hover:text-gray-900">
-          <i class="ri-bar-chart-2-line mr-3"></i>Reports
-        </a>
-
-        <a href="{{ url_for('settings.settings') }}"
-          class="block p-3 rounded-lg text-gray-700 mb-2 hover:bg-gray-50 hover:text-gray-900">
-          <i class="ri-settings-3-line mr-3"></i>Settings
-        </a>
-      </nav>
     </aside>
 
     <!-- Main Content Area -->
@@ -158,6 +165,39 @@
     closeBtn.addEventListener("click", () => {
       sidebar.classList.add("hidden");
       sidebar.classList.remove("flex");
+    });
+  </script>
+
+  <!-- Global Loader Script -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const loader = document.getElementById("globalLoader");
+
+      // Attach to all forms automatically
+      document.querySelectorAll("form").forEach(form => {
+        form.addEventListener("submit", function() {
+          loader.classList.remove("hidden");
+        });
+      });
+
+      // Optional: live preview for profile pics
+      const profileInputs = document.querySelectorAll('input[type="file"][id^="profilePicInput"]');
+      profileInputs.forEach(input => {
+        const preview = document.getElementById('newProfilePreview');
+        if(preview){
+          input.addEventListener('change', e => {
+            const file = e.target.files[0];
+            if(file){
+              const reader = new FileReader();
+              reader.onload = event => {
+                preview.src = event.target.result;
+                preview.classList.remove('hidden');
+              }
+              reader.readAsDataURL(file);
+            }
+          });
+        }
+      });
     });
   </script>
 

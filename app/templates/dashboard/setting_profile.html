@@ -3,7 +3,6 @@
 
 {% block content %}
 <div class="w-full px-6 py-8">
-
     <!-- Page Title -->
     <h1 class="text-3xl font-semibold text-gray-800 mb-6 flex items-center gap-3">
         <svg xmlns="http://www.w3.org/2000/svg" class="size-8 aspect-square rounded-full text-neutral-600" fill="none" viewBox="0 0 24 24"
@@ -17,16 +16,18 @@
     <form method="POST" enctype="multipart/form-data" class="space-y-6 bg-white p-6 rounded-xl shadow">
 
         <!-- Profile Picture -->
-        <div class="flex items-center gap-6 relative">
+        <div class="h-28 flex items-center gap-6 relative">
             {% if current_user.profile_pic %}
                 <img src="{{ current_user.profile_pic or '/static/default_profile.png' }}" alt="{{ current_user.username + ' Profile Pic'}}"
                 class="size-24 aspect-square rounded-full border border-gray-300 object-cover">
             {% else %}
-                <i class="ri-user-line"></i>
+                <div class="size-24 aspect-square rounded-full border border-gray-300 flex items-center justify-center">
+                    <i class="ri-user-line text-lg md:text-3xl"></i>
+                </div>
             {% endif %}
             <!-- New Profile Preview (hidden by default) -->
             <img id="newProfilePreview" src="#" alt="{{ current_user.username + ' New Profile Pic'}}"
-                 class="absolute top-0 left-0 size-24 aspect-square rounded-full border border-gray-300 object-cover z-30 hidden">
+                 class="absolute top-2 left-0 size-24 aspect-square rounded-full border border-gray-300 object-cover z-30 hidden">
             <input type="file" name="profile_pic" id="profilePicInput" class="block w-full text-sm text-gray-500
                 file:mr-4 file:py-2 file:px-4
                 file:rounded-full file:border-0
@@ -94,22 +95,24 @@
 </div>
 
 {% block extra_script %}
-<!-- Script for live preview -->
 <script>
+    // Profile pic live preview (optional)
     const input = document.getElementById('profilePicInput');
     const newPreview = document.getElementById('newProfilePreview');
 
-    input.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if(file){
-            const reader = new FileReader();
-            reader.onload = function(event){
-                newPreview.src = event.target.result;
-                newPreview.classList.remove('hidden');
+    if(input && newPreview){
+        input.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if(file){
+                const reader = new FileReader();
+                reader.onload = function(event){
+                    newPreview.src = event.target.result;
+                    newPreview.classList.remove('hidden');
+                }
+                reader.readAsDataURL(file);
             }
-            reader.readAsDataURL(file);
-        }
-    });
+        });
+    }
 </script>
 {% endblock %}
 {% endblock %}
