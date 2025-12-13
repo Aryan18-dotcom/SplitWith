@@ -1,7 +1,7 @@
 {% extends "user_auth/base.html" %}
 {% block content %}
 
-<!-- Loader Overlay -->
+<!-- Loader -->
 <div id="loader" class="fixed inset-0 bg-white bg-opacity-70 flex items-center justify-center z-50 hidden">
     <div class="w-16 h-16 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
 </div>
@@ -9,72 +9,177 @@
 <h2 class="text-3xl font-extrabold text-neutral-800 mb-2">Create Account</h2>
 <p class="text-neutral-500 mb-6">Get started tracking and splitting expenses immediately.</p>
 
-<form id="signupForm" method="POST" action="{{ url_for('userAuth.signup') }}" class="space-y-4">
-  
-  <!-- Full Name -->
-  <div>
-    <label class="block text-sm font-medium text-neutral-700 mb-1">Full Name</label>
-    <input type="text" name="full_name" required
-      class="w-full p-3 border border-neutral-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-      placeholder="e.g., Alice Johnson">
-  </div>
+<form id="signupForm"
+      method="POST"
+      action="{{ url_for('userAuth.signup') }}"
+      class="space-y-4">
 
-  <!-- Username -->
-  <div>
-    <label class="block text-sm font-medium text-neutral-700 mb-1">Username</label>
-    <input type="text" name="username" required
-      class="w-full p-3 border border-neutral-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-      placeholder="e.g., alice123">
-  </div>
+    <!-- Full Name -->
+    <div>
+        <label class="block text-sm font-medium text-neutral-700 mb-1">Full Name</label>
+        <input type="text" name="full_name" required
+               class="w-full p-3 border border-neutral-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+               placeholder="e.g., Alice Johnson">
+    </div>
 
-  <!-- Email -->
-  <div>
-    <label class="block text-sm font-medium text-neutral-700 mb-1">Email Address</label>
-    <input type="email" name="email" required
-      class="w-full p-3 border border-neutral-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-      placeholder="you@example.com">
-  </div>
+    <!-- Username -->
+    <div>
+        <label class="block text-sm font-medium text-neutral-700 mb-1">Username</label>
+        <input type="text" name="username" required
+               class="w-full p-3 border border-neutral-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+               placeholder="e.g., alice123">
+    </div>
 
-  <!-- Phone Number -->
-  <div>
-    <label class="block text-sm font-medium text-neutral-700 mb-1">Phone Number</label>
-    <input type="tel" name="phone_no" required
-      class="w-full p-3 border border-neutral-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-      placeholder="e.g., 1234567890"
-      pattern="^\d{10}$"
-      maxlength="10"
-      title="Enter exactly 10 digits">
-  </div>
+    <!-- Email -->
+    <div>
+        <label class="block text-sm font-medium text-neutral-700 mb-1">Email Address</label>
+        <input type="email" name="email" required
+               class="w-full p-3 border border-neutral-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+               placeholder="you@example.com">
+    </div>
 
+    <!-- Phone -->
+    <div>
+        <label class="block text-sm font-medium text-neutral-700 mb-1">Phone Number</label>
+        <input type="tel" name="phone_no" required
+               class="w-full p-3 border border-neutral-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+               placeholder="e.g., 1234567890"
+               pattern="^\d{10}$"
+               maxlength="10"
+               title="Enter exactly 10 digits">
+    </div>
 
-  <!-- Password -->
-  <div>
-    <label class="block text-sm font-medium text-neutral-700 mb-1">Password</label>
-    <input type="password" name="password" required
-      class="w-full p-3 border border-neutral-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-      placeholder="Must be 6+ characters">
-  </div>
+    <!-- Password -->
+    <div>
+        <label class="block text-sm font-medium text-neutral-700 mb-1">Password</label>
+        <div class="relative">
+            <input type="password" name="password" id="password" required
+                   class="w-full p-3 border border-neutral-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 pr-12"
+                   placeholder="Enter a strong password">
 
-  <!-- Submit Button -->
-  <button type="submit"
-    class="w-full py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition">
-    Sign Up
-  </button>
+            <button type="button" id="togglePassword"
+                    class="absolute inset-y-0 right-0 flex items-center px-4 text-neutral-500 hover:text-neutral-800">
+                <i class="fa-solid fa-eye" id="password-icon"></i>
+            </button>
+        </div>
+
+        <div class="mt-2 h-2 rounded-full bg-neutral-200">
+            <div id="password-strength-bar"
+                 class="h-full rounded-full transition-all duration-300"
+                 style="width:0%"></div>
+        </div>
+
+        <p id="password-feedback"
+           class="text-xs mt-1 text-neutral-500 min-h-[1rem]">
+           Password strength: Too short
+        </p>
+    </div>
+
+    <!-- Confirm Password -->
+    <div>
+        <label class="block text-sm font-medium text-neutral-700 mb-1">Confirm Password</label>
+        <div class="relative">
+            <input type="password" id="confirm_password" required
+                   class="w-full p-3 border border-neutral-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 pr-12"
+                   placeholder="Re-enter your password">
+        </div>
+
+        <p id="confirm-feedback"
+           class="text-xs mt-1 min-h-[1rem] text-red-500"></p>
+    </div>
+
+    <!-- Submit -->
+    <button type="submit" id="submit-button" disabled
+            class="w-full py-3 bg-green-600 text-white font-bold rounded-lg
+                   hover:bg-green-700 transition
+                   disabled:opacity-50 disabled:cursor-not-allowed">
+        Sign Up
+    </button>
 </form>
 
 <p class="mt-6 text-center text-sm text-neutral-600">
-  Already have an account?
-  <a href="{{ url_for('userAuth.login') }}" class="text-blue-600 hover:text-blue-800 font-bold">Sign In</a>
+    Already have an account?
+    <a href="{{ url_for('userAuth.login') }}"
+       class="text-blue-600 hover:text-blue-800 font-bold">Sign In</a>
 </p>
+
+<!-- Font Awesome -->
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+      crossorigin="anonymous" referrerpolicy="no-referrer"/>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("signupForm");
     const loader = document.getElementById("loader");
+    const passwordInput = document.getElementById("password");
+    const confirmPasswordInput = document.getElementById("confirm_password");
+    const strengthBar = document.getElementById("password-strength-bar");
+    const passwordFeedback = document.getElementById("password-feedback");
+    const confirmFeedback = document.getElementById("confirm-feedback");
+    const submitButton = document.getElementById("submit-button");
 
-    form.addEventListener("submit", () => {
+    function togglePassword(input, icon) {
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.replace("fa-eye", "fa-eye-slash");
+        } else {
+            input.type = "password";
+            icon.classList.replace("fa-eye-slash", "fa-eye");
+        }
+    }
+
+    document.getElementById("togglePassword").onclick = () =>
+        togglePassword(passwordInput, document.getElementById("password-icon"));
+
+    function passwordStrength(password) {
+        let score = 0;
+        if (password.length >= 8) score += 20;
+        if (/[A-Z]/.test(password)) score += 20;
+        if (/[a-z]/.test(password)) score += 20;
+        if (/[0-9]/.test(password)) score += 20;
+        if (/[^A-Za-z0-9]/.test(password)) score += 20;
+        return score;
+    }
+
+    function validate() {
+        const pass = passwordInput.value;
+        const conf = confirmPasswordInput.value;
+        const score = passwordStrength(pass);
+
+        strengthBar.style.width = score + "%";
+        strengthBar.className = "h-full rounded-full transition-all " +
+            (score >= 80 ? "bg-green-600" :
+             score >= 60 ? "bg-yellow-500" :
+             score > 0 ? "bg-orange-500" : "bg-red-500");
+
+        passwordFeedback.textContent =
+            "Password strength: " +
+            (score >= 80 ? "Strong" :
+             score >= 60 ? "Medium" :
+             score > 0 ? "Weak" : "Too short");
+
+        if (conf && pass !== conf) {
+            confirmFeedback.textContent = "Passwords do not match";
+            confirmFeedback.className = "text-xs mt-1 text-red-500";
+            submitButton.disabled = true;
+            return;
+        }
+
+        if (conf && pass === conf) {
+            confirmFeedback.textContent = "Passwords match";
+            confirmFeedback.className = "text-xs mt-1 text-green-600";
+        }
+
+        submitButton.disabled = !(score >= 80 && pass === conf);
+    }
+
+    passwordInput.oninput = validate;
+    confirmPasswordInput.oninput = validate;
+
+    form.onsubmit = () => {
         loader.classList.remove("hidden");
-    });
+    };
 });
 </script>
 
