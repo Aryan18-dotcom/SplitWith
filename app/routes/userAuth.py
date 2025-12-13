@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, redirect, make_response, url_for, flash, session
+from flask import Blueprint, request, render_template, redirect, make_response, url_for, flash, session,current_app
 from ..models.userModel import UserModel
 from ..models.otpModel import OTPModel
 import jwt
@@ -11,54 +11,156 @@ user_bp = Blueprint("userAuth", __name__, template_folder="templates")
 
 
 # ----------------------- SIGNUP -----------------------
+# @user_bp.route('/auth/signup', methods=["POST", "GET"])
+# def signup():
+#     if request.method == "POST":
+
+#         # Set loading = true
+#         response = make_response()
+#         response.set_cookie("loading", "true", samesite="Lax")
+
+#         data = request.form
+
+#         username = data.get('username')
+#         email = data.get('email').lower().strip()
+#         full_name = data.get('full_name')
+#         phone_no = data.get('phone_no')
+#         password = data.get('password')
+
+#         if not all([username, email, full_name, phone_no, password]):
+#             flash("Please fill all required fields!", "error")
+            
+#             response = make_response(render_template("user_auth/signup.html"))
+#             response.set_cookie("loading", "false", samesite="Lax")
+#             return response
+
+#         if UserModel.find_by_email_or_username(email) or UserModel.find_by_email_or_username(username):
+#             flash("Username or Email already exists!", "error")
+
+#             response = make_response(render_template("user_auth/signup.html"))
+#             response.set_cookie("loading", "false", samesite="Lax")
+#             return response
+
+#         # Store pending
+#         session['pending_signup'] = {
+#             "email": email,
+#             "username": username,
+#             "full_name": full_name,
+#             "phone_no": phone_no,
+#             "password": password
+#         }
+
+#         OTPModel.generate_otp(email)
+
+#         flash("OTP sent to your email.", "success")
+
+#         response = make_response(render_template("user_auth/verify_otp.html", email=email))
+
+#         response.set_cookie("loading", "false", samesite="Lax")
+#         return response
+
+#     return render_template("user_auth/signup.html")
+
+import threading
+import traceback
+from flask import request, render_template, flash, session
+
 @user_bp.route('/auth/signup', methods=["POST", "GET"])
 def signup():
+
+    print("🟢 [SIGNUP] Route accessed")
+
     if request.method == "POST":
+        print("📩 [SIGNUP] POST request received")
 
-        # Set loading = true
-        response = make_response()
-        response.set_cookie("loading", "true", samesite="Lax")
+        try:
+            data = request.form
 
-        data = request.form
+            username = data.get('username')
+            email = data.get('email').lower().strip()
+            full_name = data.get('full_name')
+            phone_no = data.get('phone_no')
+            password = data.get('password')
 
-        username = data.get('username')
-        email = data.get('email').lower().strip()
-        full_name = data.get('full_name')
-        phone_no = data.get('phone_no')
-        password = data.get('password')
+            print(f"🧾 [SIGNUP] Data received → username={username}, email={email}")
 
-        if not all([username, email, full_name, phone_no, password]):
-            flash("Please fill all required fields!", "error")
-            
-            response = make_response(render_template("user_auth/signup.html"))
-            response.set_cookie("loading", "false", samesite="Lax")
-            return response
+            if not all([username, email, full_name, phone_no, password]):
+                print("⚠️ [SIGNUP] Missing required fields")
+                flash("Please fill all required fields!", "error")
+                return render_template("user_auth/signup.html")
 
-        if UserModel.find_by_email_or_username(email) or UserModel.find_by_email_or_username(username):
-            flash("Username or Email already exists!", "error")
+            print("🔍 [SIGNUP] Checking existing user")
 
-            response = make_response(render_template("user_auth/signup.html"))
-            response.set_cookie("loading", "false", samesite="Lax")
-            return response
+            if UserModel.find_by_email_or_username(email):
+                print("❌ [SIGNUP] Email already exists")
+                flash("Email already exists!", "error")
+                return render_template("user_auth/signup.html")
 
-        # Store pending
-        session['pending_signup'] = {
-            "email": email,
-            "username": username,
-            "full_name": full_name,
-            "phone_no": phone_no,
-            "password": password
-        }
+            if UserModel.find_by_email_or_username(username):
+                print("❌ [SIGNUP] Username already exists")
+                flash("Username already exists!", "error")
+                return render_template("user_auth/signup.html")
 
-        OTPModel.generate_otp(email)
+            print("🗃️ [SIGNUP] Storing pending signup in session")
 
-        flash("OTP sent to your email.", "success")
+            session['pending_signup'] = {
+                "email": email,
+                "username": username,
+                "full_name": full_name,
+                "phone_no": phone_no,
+                "password": password
+            }
 
-        response = make_response(render_template("user_auth/verify_otp.html", email=email))
-        response.set_cookie("loading", "false", samesite="Lax")
-        return response
+            print("🚀 [OTP] Starting background OTP thread")
 
+            app_obj = current_app._get_current_object()  # ✅ REAL APP
+
+            threading.Thread(
+                target=send_otp_background,
+                args=(email, app_obj),
+                daemon=True
+            ).start()
+
+            print("✅ [SIGNUP] OTP thread started successfully")
+
+            flash("OTP sent to your email.", "success")
+            return render_template("user_auth/verify_otp.html", email=email)
+
+        except Exception as e:
+            print("🔥 [SIGNUP ERROR] Exception occurred")
+            print("🧨 Error:", str(e))
+            traceback.print_exc()
+
+            flash("Something went wrong. Please try again.", "error")
+            return render_template("user_auth/signup.html")
+
+    print("📄 [SIGNUP] GET request – showing signup page")
     return render_template("user_auth/signup.html")
+
+
+
+def send_otp_background(email, app):
+    print("🧵 [THREAD] Background OTP thread started")
+
+    try:
+        with app.app_context():
+            print("🧠 [APP CONTEXT] Application context pushed successfully")
+
+            print(f"📨 [OTP] Generating OTP for → {email}")
+
+            otp = OTPModel.generate_otp(email)
+
+            if otp:
+                print("✉️ [OTP] OTP generated, sending email...")
+                OTPModel.send_email(email, otp)
+                print("📬 [OTP] Email sent successfully")
+
+            print(f"✅ [OTP] OTP process completed for → {email}")
+
+    except Exception as e:
+        print("🔥 [THREAD ERROR] Critical failure in OTP thread")
+        print("🧨 Error:", str(e))
+        traceback.print_exc()
 
 
 

@@ -24,9 +24,6 @@ class OTPModel:
             upsert=True
         )
 
-        # Send OTP via email
-        OTPModel.send_email(email, otp)
-
         return otp
 
     @staticmethod
