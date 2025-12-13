@@ -10,15 +10,96 @@ from ..utils.detact_device import get_readable_device
 user_bp = Blueprint("userAuth", __name__, template_folder="templates")
 
 
-# ----------------------- SIGNUP -----------------------
+# # ----------------------- SIGNUP -----------------------
+# @user_bp.route('/auth/signup', methods=["POST", "GET"])
+# def signup():
+#     if request.method == "POST":
+
+#         # Set loading = true
+#         response = make_response()
+#         response.set_cookie("loading", "true", samesite="Lax")
+
+#         data = request.form
+
+#         username = data.get('username')
+#         email = data.get('email').lower().strip()
+#         full_name = data.get('full_name')
+#         phone_no = data.get('phone_no')
+#         password = data.get('password')
+
+#         if not all([username, email, full_name, phone_no, password]):
+#             flash("Please fill all required fields!", "error")
+            
+#             response = make_response(render_template("user_auth/signup.html"))
+#             response.set_cookie("loading", "false", samesite="Lax")
+#             return response
+
+#         if UserModel.find_by_email_or_username(email) or UserModel.find_by_email_or_username(username):
+#             flash("Username or Email already exists!", "error")
+
+#             response = make_response(render_template("user_auth/signup.html"))
+#             response.set_cookie("loading", "false", samesite="Lax")
+#             return response
+
+#         # Store pending
+#         session['pending_signup'] = {
+#             "email": email,
+#             "username": username,
+#             "full_name": full_name,
+#             "phone_no": phone_no,
+#             "password": password
+#         }
+
+#         OTPModel.generate_otp(email)
+
+#         flash("OTP sent to your email.", "success")
+
+#         response = make_response(render_template("user_auth/verify_otp.html", email=email))
+#         response.set_cookie("loading", "false", samesite="Lax")
+#         return response
+
+#     return render_template("user_auth/signup.html")
+import threading
+from flask import request, render_template, flash, make_response, redirect, url_for, session, current_app
+from time import sleep # Used for the simulated timeout
+
+# Assume user_bp and other necessary imports (UserModel, OTPModel, etc.) are present
+# from . import user_bp # If this is in routes.py
+
+# --- 1. Background Task Function ---
+def _send_otp_in_background(app_context, email):
+    """
+    Function to be run in a separate thread.
+    It holds the slow I/O operation (sending the email).
+    """
+    # Push the application context required for Flask-Mail or app.logger
+    with app_context:
+        try:
+            current_app.logger.info(f"THREAD: Starting OTP send for {email}...")
+            
+            # --- CRITICAL BLOCKING CODE HERE ---
+            # Assume OTPModel.generate_otp internally calls the email sending logic
+            OTPModel.generate_otp(email)
+            # -----------------------------------
+            
+            current_app.logger.info(f"THREAD: Successfully sent OTP for {email}.")
+            
+            # Optional: Add a small delay (e.g., 2 seconds) to simulate minimum time
+            # and prevent an instant redirect which can feel too fast/broken.
+            # However, usually the email network time is enough.
+            # sleep(1) 
+
+        except Exception as e:
+            current_app.logger.error(f"THREAD ERROR: Failed to send OTP email to {email}: {e}")
+            # Note: Since this is in a thread, we cannot directly flash the user.
+            # A more robust system (Celery) would handle retries and error reporting.
+
+
+# ----------------------- SIGNUP ROUTE -----------------------
 @user_bp.route('/auth/signup', methods=["POST", "GET"])
 def signup():
     if request.method == "POST":
-
-        # Set loading = true
-        response = make_response()
-        response.set_cookie("loading", "true", samesite="Lax")
-
+        
         data = request.form
 
         username = data.get('username')
@@ -27,21 +108,17 @@ def signup():
         phone_no = data.get('phone_no')
         password = data.get('password')
 
+        # --- 1. Basic Validation ---
         if not all([username, email, full_name, phone_no, password]):
             flash("Please fill all required fields!", "error")
-            
-            response = make_response(render_template("user_auth/signup.html"))
-            response.set_cookie("loading", "false", samesite="Lax")
-            return response
+            return render_template("user_auth/signup.html")
 
+        # --- 2. Existence Check ---
         if UserModel.find_by_email_or_username(email) or UserModel.find_by_email_or_username(username):
             flash("Username or Email already exists!", "error")
+            return render_template("user_auth/signup.html")
 
-            response = make_response(render_template("user_auth/signup.html"))
-            response.set_cookie("loading", "false", samesite="Lax")
-            return response
-
-        # Store pending
+        # --- 3. Store Pending Data ---
         session['pending_signup'] = {
             "email": email,
             "username": username,
@@ -50,16 +127,29 @@ def signup():
             "password": password
         }
 
-        OTPModel.generate_otp(email)
+        # --- 4. ASYNCHRONOUS EMAIL SENDING ---
+        # Get the application context to pass to the thread
+        app_context = current_app.app_context()
+        
+        # Start the email sending in a background thread
+        email_thread = threading.Thread(
+            target=_send_otp_in_background, 
+            args=(app_context, email)
+        )
+        email_thread.start()
+        
+        current_app.logger.info(f"MAIN: OTP send started in background for {email}. Proceeding to redirect.")
 
-        flash("OTP sent to your email.", "success")
-
+        # --- 5. IMMEDIATE REDIRECT (Fixes 'Stuck on Loading' and UX) ---
+        flash("OTP has been sent to your email. Please check your inbox!", "success")
+        
+        # We redirect immediately, resolving the request and stopping the loader.
+        # The frontend should immediately show the verify_otp page.
         response = make_response(render_template("user_auth/verify_otp.html", email=email))
         response.set_cookie("loading", "false", samesite="Lax")
         return response
 
     return render_template("user_auth/signup.html")
-
 
 
 # ----------------------- JWT FUNCTIONS -----------------------
