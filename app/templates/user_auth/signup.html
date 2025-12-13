@@ -40,8 +40,12 @@
     <label class="block text-sm font-medium text-neutral-700 mb-1">Phone Number</label>
     <input type="tel" name="phone_no" required
       class="w-full p-3 border border-neutral-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-      placeholder="e.g., +1234567890">
+      placeholder="e.g., 1234567890"
+      pattern="^\d{10}$"
+      maxlength="10"
+      title="Enter exactly 10 digits">
   </div>
+
 
   <!-- Password -->
   <div>
