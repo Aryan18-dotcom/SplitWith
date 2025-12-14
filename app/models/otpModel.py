@@ -5,6 +5,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 import random
+import socket
 
 class OTPModel:
 
@@ -24,35 +25,46 @@ class OTPModel:
             upsert=True
         )
 
+        # Send OTP via email
+        # OTPModel.send_email(email, otp)
+
         return otp
 
     @staticmethod
-    def send_email(to_email, otp):
-        sender_email = Config.SMTP_EMAIL
-        sender_password = Config.SMTP_PASS
-        smtp_host = Config.SMTP_HOST
-        smtp_port = Config.SMTP_PORT
-
+    def send_email(to_email, otp) -> bool:
         subject = "Your OTP Code"
-        body = f"Your OTP code is: {otp}. It is valid for {Config.OTP_TTL_SECONDS // 60} minutes."
+        body = (
+            f"Your OTP code is: {otp}\n\n"
+            f"It is valid for {Config.OTP_TTL_SECONDS // 60} minutes."
+        )
 
-        # Create email
         msg = MIMEMultipart()
-        msg['From'] = sender_email
-        msg['To'] = to_email
-        msg['Subject'] = subject
-        msg.attach(MIMEText(body, 'plain'))
+        msg["From"] = Config.SMTP_EMAIL
+        msg["To"] = to_email
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "plain"))
 
         try:
-            server = smtplib.SMTP(smtp_host, smtp_port)
+            server = smtplib.SMTP(
+                Config.SMTP_HOST,
+                Config.SMTP_PORT,
+                timeout=15  # 🔥 REQUIRED on Render
+            )
+
+            server.ehlo()
             server.starttls()
-            server.login(sender_email, sender_password)
+            server.ehlo()
+            server.login(Config.SMTP_EMAIL, Config.SMTP_PASS)
+
             server.send_message(msg)
             server.quit()
-            print(f"OTP sent to {to_email}")
-        except Exception as e:
-            print(f"Error sending OTP: {e}")
 
+            return True
+
+        except (smtplib.SMTPException, socket.error) as e:
+            print("❌ SMTP ERROR:", str(e))
+            return False
+        
     @staticmethod
     def verify_otp(email, otp):
         record = OTPModel.collection().find_one({"email": email})
