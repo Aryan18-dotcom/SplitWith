@@ -10,7 +10,8 @@ def create_app(config_class=Config):
     global mongo
     app = Flask(__name__, static_folder="../static")
     app.config.from_object(config_class)
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s | %(levelname)s | %(message)s",)
+    app.logger.setLevel(logging.DEBUG)
 
     # Initialize Mongo client
     mongo = MongoClient(
