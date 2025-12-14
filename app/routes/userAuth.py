@@ -16,7 +16,13 @@ from flask import current_app
 
 @user_bp.route('/auth/signup', methods=["POST", "GET"])
 def signup():
+    logger = current_app.logger
+
+    logger.info("🟢 [SIGNUP] Route accessed")
+
     if request.method == "POST":
+        logger.info("📩 [SIGNUP] POST request received")
+
         data = request.form
 
         username = data.get('username')
@@ -25,14 +31,30 @@ def signup():
         phone_no = data.get('phone_no')
         password = data.get('password')
 
+        logger.debug(
+            "🧾 [SIGNUP DATA] username=%s, email=%s",
+            username, email
+        )
+
         if not all([username, email, full_name, phone_no, password]):
+            logger.warning("⚠️ [SIGNUP] Missing required fields")
             flash("Please fill all required fields!", "error")
             return render_template("user_auth/signup.html")
 
-        if UserModel.find_by_email_or_username(email) or \
-           UserModel.find_by_email_or_username(username):
+        logger.info("🔍 [SIGNUP] Checking existing user")
+
+        if (
+            UserModel.find_by_email_or_username(email) or
+            UserModel.find_by_email_or_username(username)
+        ):
+            logger.warning(
+                "❌ [SIGNUP] Duplicate username/email detected → %s / %s",
+                username, email
+            )
             flash("Username or Email already exists!", "error")
             return render_template("user_auth/signup.html")
+
+        logger.info("🗃️ [SIGNUP] Saving pending signup to session")
 
         session['pending_signup'] = {
             "email": email,
@@ -42,7 +64,8 @@ def signup():
             "password": password
         }
 
-        # ✅ SAFE background execution for Render
+        logger.info("🚀 [OTP] Starting background OTP thread")
+
         app = current_app._get_current_object()
         threading.Thread(
             target=send_otp_background,
@@ -50,31 +73,41 @@ def signup():
             daemon=True
         ).start()
 
+        logger.info("✅ [OTP] Background OTP thread started")
+
         flash("OTP sent to your email.", "success")
         return render_template("user_auth/verify_otp.html", email=email)
 
+    logger.info("📄 [SIGNUP] GET request – rendering signup page")
     return render_template("user_auth/signup.html")
 
-
-import traceback
-
 def send_otp_background(email, app):
+    logger = app.logger
+
+    logger.info("🧵 [THREAD] OTP background task started → %s", email)
+
     try:
         with app.app_context():
+            logger.info("🧠 [THREAD] App context pushed")
+
+            logger.info("🔐 [OTP] Generating OTP for %s", email)
             otp = OTPModel.generate_otp(email)
+
             if not otp:
-                app.logger.error("OTP generation failed for %s", email)
+                logger.error("❌ [OTP] OTP generation failed → %s", email)
                 return
 
+            logger.info("✉️ [OTP] Sending OTP email → %s", email)
             success = OTPModel.send_email(email, otp)
 
             if success:
-                app.logger.info("OTP email sent → %s", email)
+                logger.info("✅ [OTP] OTP email delivered → %s", email)
             else:
-                app.logger.error("OTP email FAILED → %s", email)
+                logger.error("❌ [OTP] OTP email delivery FAILED → %s", email)
 
     except Exception:
-        app.logger.exception("OTP background task crashed")
+        logger.exception("🔥 [THREAD ERROR] OTP background task crashed")
+
 
 
 

@@ -48,7 +48,7 @@ class OTPModel:
             server = smtplib.SMTP(
                 Config.SMTP_HOST,
                 Config.SMTP_PORT,
-                timeout=15  # 🔥 REQUIRED on Render
+                timeout=15  # ✅ REQUIRED for Render
             )
 
             server.ehlo()
@@ -62,7 +62,8 @@ class OTPModel:
             return True
 
         except (smtplib.SMTPException, socket.error) as e:
-            print("❌ SMTP ERROR:", str(e))
+            print(f"❌ [EMAIL ERROR] Failed to send OTP → {to_email}")
+            print(f"🧨 Reason: {e}")
             return False
         
     @staticmethod
