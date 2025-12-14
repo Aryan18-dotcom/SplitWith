@@ -11,17 +11,13 @@ user_bp = Blueprint("userAuth", __name__, template_folder="templates")
 
 
 # ----------------------- SIGNUP -----------------------
-import threading
-from flask import current_app
-
 @user_bp.route('/auth/signup', methods=["POST", "GET"])
 def signup():
-    logger = current_app.logger
-
-    logger.info("🟢 [SIGNUP] Route accessed")
-
     if request.method == "POST":
-        logger.info("📩 [SIGNUP] POST request received")
+
+        # 🔄 loading = true
+        response = make_response()
+        response.set_cookie("loading", "true", samesite="Lax")
 
         data = request.form
 
@@ -31,31 +27,26 @@ def signup():
         phone_no = data.get('phone_no')
         password = data.get('password')
 
-        logger.debug(
-            "🧾 [SIGNUP DATA] username=%s, email=%s",
-            username, email
-        )
-
+        # ❌ Validation
         if not all([username, email, full_name, phone_no, password]):
-            logger.warning("⚠️ [SIGNUP] Missing required fields")
             flash("Please fill all required fields!", "error")
-            return render_template("user_auth/signup.html")
 
-        logger.info("🔍 [SIGNUP] Checking existing user")
+            response = make_response(render_template("user_auth/signup.html"))
+            response.set_cookie("loading", "false", samesite="Lax")
+            return response
 
+        # ❌ Duplicate check
         if (
             UserModel.find_by_email_or_username(email) or
             UserModel.find_by_email_or_username(username)
         ):
-            logger.warning(
-                "❌ [SIGNUP] Duplicate username/email detected → %s / %s",
-                username, email
-            )
             flash("Username or Email already exists!", "error")
-            return render_template("user_auth/signup.html")
 
-        logger.info("🗃️ [SIGNUP] Saving pending signup to session")
+            response = make_response(render_template("user_auth/signup.html"))
+            response.set_cookie("loading", "false", samesite="Lax")
+            return response
 
+        # 🗃️ Store pending signup
         session['pending_signup'] = {
             "email": email,
             "username": username,
@@ -64,50 +55,35 @@ def signup():
             "password": password
         }
 
-        logger.info("🚀 [OTP] Starting background OTP thread")
+        # 🔐 Generate OTP
+        otp = OTPModel.generate_otp(email)
+        if not otp:
+            flash("Failed to generate OTP. Try again.", "error")
 
-        app = current_app._get_current_object()
-        threading.Thread(
-            target=send_otp_background,
-            args=(email, app),
-            daemon=True
-        ).start()
+            response = make_response(render_template("user_auth/signup.html"))
+            response.set_cookie("loading", "false", samesite="Lax")
+            return response
 
-        logger.info("✅ [OTP] Background OTP thread started")
+        # ✉️ Send email (SYNC)
+        success = OTPModel.send_email(email, otp)
 
+        if not success:
+            flash("Failed to send OTP email. Try again.", "error")
+
+            response = make_response(render_template("user_auth/signup.html"))
+            response.set_cookie("loading", "false", samesite="Lax")
+            return response
+
+        # ✅ SUCCESS
         flash("OTP sent to your email.", "success")
-        return render_template("user_auth/verify_otp.html", email=email)
 
-    logger.info("📄 [SIGNUP] GET request – rendering signup page")
+        response = make_response(
+            render_template("user_auth/verify_otp.html", email=email)
+        )
+        response.set_cookie("loading", "false", samesite="Lax")
+        return response
+
     return render_template("user_auth/signup.html")
-
-def send_otp_background(email, app):
-    logger = app.logger
-
-    logger.info("🧵 [THREAD] OTP background task started → %s", email)
-
-    try:
-        with app.app_context():
-            logger.info("🧠 [THREAD] App context pushed")
-
-            logger.info("🔐 [OTP] Generating OTP for %s", email)
-            otp = OTPModel.generate_otp(email)
-
-            if not otp:
-                logger.error("❌ [OTP] OTP generation failed → %s", email)
-                return
-
-            logger.info("✉️ [OTP] Sending OTP email → %s", email)
-            success = OTPModel.send_email(email, otp)
-
-            if success:
-                logger.info("✅ [OTP] OTP email delivered → %s", email)
-            else:
-                logger.error("❌ [OTP] OTP email delivery FAILED → %s", email)
-
-    except Exception:
-        logger.exception("🔥 [THREAD ERROR] OTP background task crashed")
-
 
 
 
@@ -152,15 +128,17 @@ def login():
 
     if request.method == 'POST':
 
-        # Start loading
+        # 🔄 Start loading
         response = make_response()
         response.set_cookie("loading", "true", samesite="Lax")
 
         identifier = request.form.get('user_name_or_email')
         password = request.form.get('user_password')
 
+        # ❌ Validation
         if not identifier or not password:
             flash("Please fill all fields!", "error")
+
             response = make_response(render_template("user_auth/login.html"))
             response.set_cookie("loading", "false", samesite="Lax")
             return response
@@ -169,11 +147,12 @@ def login():
 
         if not user or not check_password_hash(user["password"], password):
             flash("Incorrect credentials!", "error")
+
             response = make_response(render_template("user_auth/login.html"))
             response.set_cookie("loading", "false", samesite="Lax")
             return response
 
-        # Device tracking
+        # 📱 Device tracking
         user_agent_string = request.headers.get("User-Agent")
         readable_device = get_readable_device(user_agent_string)
 
@@ -183,39 +162,52 @@ def login():
             "device_name": readable_device["device_name"],
             "os": readable_device["os"],
             "browser": readable_device["browser"],
+            "login_time": datetime.utcnow()
         }
 
-        existing_device = next(
-            (d for d in user.get("devices", []) 
-             if d.get("ip") == current_device["ip"] and
-                d.get("device_type") == current_device["device_type"] and
-                d.get("device_name") == current_device["device_name"] and
-                d.get("os") == current_device["os"] and
-                d.get("browser") == current_device["browser"]),
-            None
+        UserModel.update_last_active_device(
+            user_id=str(user["_id"]),
+            device=current_device
         )
 
-        if existing_device:
-            existing_device["login_time"] = datetime.utcnow()
-            UserModel.update_last_active_device(user_id=str(user["_id"]), device=existing_device)
-        else:
-            current_device["login_time"] = datetime.utcnow()
-            UserModel.add_login_device(user_id=str(user["_id"]), device=current_device)
+        UserModel.update_login_status(
+            user_id=str(user["_id"]),
+            is_login=True
+        )
 
-        UserModel.update_last_active_device(user_id=str(user["_id"]), device=current_device)
-        UserModel.update_login_status(user_id=str(user["_id"]), is_login=True)
-
-        # Handle 2FA
+        # 🔐 2FA FLOW
         if user.get('2fa_enabled'):
-            OTPModel.generate_otp(user["email"])
 
-            response = make_response(render_template("user_auth/verify_login.html",
-                                                     email=user["email"],
-                                                     next_url=url_for('home.dashboard')))
+            # Generate OTP
+            otp = OTPModel.generate_otp(user["email"])
+            if not otp:
+                flash("Failed to generate OTP. Try again.", "error")
+
+                response = make_response(render_template("user_auth/login.html"))
+                response.set_cookie("loading", "false", samesite="Lax")
+                return response
+
+            # Send OTP email
+            success = OTPModel.send_email(user["email"], otp)
+            if not success:
+                flash("Failed to send OTP email. Try again.", "error")
+
+                response = make_response(render_template("user_auth/login.html"))
+                response.set_cookie("loading", "false", samesite="Lax")
+                return response
+
+            # ✅ OTP sent
+            response = make_response(
+                render_template(
+                    "user_auth/verify_login.html",
+                    email=user["email"],
+                    next_url=url_for('home.dashboard')
+                )
+            )
             response.set_cookie("loading", "false", samesite="Lax")
             return response
 
-        # Create JWT session
+        # 🔓 NO 2FA → Create session
         token = SetAndGetSession({
             "user_id": str(user["_id"]),
             "username": user["username"],
@@ -227,11 +219,11 @@ def login():
 
         flash("Login successful! Welcome back.", "success")
 
-        # Stop loading
         response.set_cookie("loading", "false", samesite="Lax")
         return response
 
     return render_template("user_auth/login.html")
+
 
 
 @user_bp.route('/auth/logout')

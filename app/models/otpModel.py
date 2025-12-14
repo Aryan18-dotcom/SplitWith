@@ -5,7 +5,6 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 import random
-import socket
 
 class OTPModel:
 
@@ -32,6 +31,11 @@ class OTPModel:
 
     @staticmethod
     def send_email(to_email, otp) -> bool:
+        sender_email = Config.SMTP_EMAIL
+        sender_password = Config.SMTP_PASS
+        smtp_host = Config.SMTP_HOST
+        smtp_port = Config.SMTP_PORT
+
         subject = "Your OTP Code"
         body = (
             f"Your OTP code is: {otp}\n\n"
@@ -39,33 +43,28 @@ class OTPModel:
         )
 
         msg = MIMEMultipart()
-        msg["From"] = Config.SMTP_EMAIL
-        msg["To"] = to_email
-        msg["Subject"] = subject
-        msg.attach(MIMEText(body, "plain"))
+        msg['From'] = sender_email
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain'))
 
         try:
-            server = smtplib.SMTP(
-                Config.SMTP_HOST,
-                Config.SMTP_PORT,
-                timeout=15  # ✅ REQUIRED for Render
-            )
-
+            server = smtplib.SMTP(smtp_host, smtp_port, timeout=15)
             server.ehlo()
             server.starttls()
             server.ehlo()
-            server.login(Config.SMTP_EMAIL, Config.SMTP_PASS)
-
+            server.login(sender_email, sender_password)
             server.send_message(msg)
             server.quit()
 
-            return True
+            print(f"✅ OTP sent to {to_email}")
+            return True   # ✅ IMPORTANT
 
-        except (smtplib.SMTPException, socket.error) as e:
-            print(f"❌ [EMAIL ERROR] Failed to send OTP → {to_email}")
-            print(f"🧨 Reason: {e}")
-            return False
-        
+        except Exception as e:
+            print(f"❌ Error sending OTP: {e}")
+            return False  # ✅ IMPORTANT
+
+
     @staticmethod
     def verify_otp(email, otp):
         record = OTPModel.collection().find_one({"email": email})
@@ -85,5 +84,23 @@ class OTPModel:
         return True, "OTP verified"
 
     @staticmethod
-    def resend_otp(email):
-        return OTPModel.generate_otp(email)
+    def resend_otp(email) -> bool:
+        """
+        Regenerate OTP and resend email
+        """
+        # 🔐 Generate new OTP
+        otp = OTPModel.generate_otp(email)
+        if not otp:
+            print(f"❌ [RESEND OTP] OTP generation failed → {email}")
+            return False
+
+        # ✉️ Send OTP email
+        success = OTPModel.send_email(email, otp)
+
+        if success:
+            print(f"✅ [RESEND OTP] OTP resent successfully → {email}")
+            return True
+
+        print(f"❌ [RESEND OTP] Email send failed → {email}")
+        return False
+

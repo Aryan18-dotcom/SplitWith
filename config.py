@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv(".env.production")
+load_dotenv()
 
 def get_required_env(key):
     value = os.environ.get(key)
